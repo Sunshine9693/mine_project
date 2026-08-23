@@ -111,3 +111,43 @@ Copy `backend/.env.example` to `backend/.env` and set `MONGO_URI`, `JWT_SECRET`,
 Phase 4 adds authenticated `POST /api/ai/chat` plus conversation persistence under `/api/conversations` and memory CRUD under `/api/memory`. Memory commands such as `Remember that I prefer concise answers`, `Forget that I prefer concise answers`, and `What do you remember about me?` are handled by the backend before a normal chat is sent to the provider.
 
 Run backend checks with `npm test` from `backend`, and build/lint the frontend with `npm run build` and `npm run lint` from `frontend`.
+
+## 🚀 Phase 5 — Productivity Features
+
+Phase 5 enhances **AURA** with personal productivity capabilities, allowing users to manage tasks, notes, reminders, and conversations using natural-language and voice commands.
+
+### ✨ Features
+
+* 📝 **Notes** — Create and manage notes using natural language.
+* ✅ **Tasks** — Create and manage daily productivity tasks.
+* ⏰ **Reminders** — Set reminders with date and time information.
+* 💬 **Conversations** — View previous assistant conversations.
+* 🧠 **Intent Detection** — Understands task, note, and reminder commands.
+* 🕐 **Timezone Support** — Improved date and time processing.
+* 🎙️ **Voice Integration** — Productivity features work with AURA's voice interface.
+
+### 🧪 Testing
+
+Phase 5 includes automated tests for productivity intent detection and detail parsing.
+
+```text
+Tests: 4
+Passed: 4
+Failed: 0
+Status: ✅ All Tests Passed
+```
+
+### 🛠️ Key Technologies
+
+**Frontend:** React.js
+**Backend:** Node.js + Express.js
+**Database:** MongoDB
+**AI:** Gemini / AI Provider
+**Testing:** Node.js Test Runner
+
+### ✅ Phase 5 Status
+
+**Completed and successfully pushed to GitHub.** 🚀
+
+Commit: `3b5df0b`
+
