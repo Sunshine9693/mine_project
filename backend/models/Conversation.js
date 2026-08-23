@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const MessageSchema = new mongoose.Schema({
   role: {
     type: String,
-    enum: ['user', 'assistant'],
+    enum: ['user', 'assistant', 'system'],
     required: true,
   },
   content: {
@@ -13,6 +13,16 @@ const MessageSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now,
+  },
+  type: {
+    type: String,
+    enum: ['message', 'error'],
+    default: 'message',
+  },
+  inputType: {
+    type: String,
+    enum: ['TEXT', 'VOICE'],
+    default: 'TEXT',
   },
 }, { _id: false });
 
@@ -30,5 +40,7 @@ const ConversationSchema = new mongoose.Schema({
 }, {
   timestamps: true,
 });
+
+ConversationSchema.index({ userId: 1, updatedAt: -1 });
 
 module.exports = mongoose.model('Conversation', ConversationSchema);

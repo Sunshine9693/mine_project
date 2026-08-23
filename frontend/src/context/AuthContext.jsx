@@ -38,6 +38,7 @@ export const AuthProvider = ({ children }) => {
         setIsAuthenticated(true);
         return { success: true };
       }
+      return { success: false, error: 'Registration failed. Please try again.' };
     } catch (err) {
       const message = err.response?.data?.message || 'Login failed. Please check credentials.';
       setError(message);
@@ -55,6 +56,7 @@ export const AuthProvider = ({ children }) => {
         setIsAuthenticated(true);
         return { success: true };
       }
+      return { success: false, error: 'Login failed. Please check credentials.' };
     } catch (err) {
       const message = err.response?.data?.message || 'Registration failed. Try again.';
       setError(message);

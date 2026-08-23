@@ -1,15 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Image, 
-  Sparkles, 
-  Clock, 
-  Globe, 
-  ChevronRight, 
-  Calendar, 
-  Music, 
-  Search, 
-  MessageSquare 
+  FileText,
+  CheckSquare,
+  Bell,
+  Sparkles,
+  Clock,
+  ChevronRight,
+  Calendar,
+  Search,
+  MessageSquare,
+  Music,
+  Plus
 } from 'lucide-react';
 import ProfileHeader from '../components/ProfileHeader';
 import QuickActionCard from '../components/QuickActionCard';
@@ -25,6 +27,8 @@ const Dashboard = () => {
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState('info');
   const [conversationId, setConversationId] = useState(null);
+  const [summary, setSummary] = useState({ notes: { total: 0, pinned: 0, recent: [] }, tasks: { total: 0, completed: 0, pending: 0, highPriority: 0 }, reminders: { today: 0, upcoming: 0, completed: 0 } });
+  const sendingRef = React.useRef(false);
 
   const showToast = (message, type = 'info') => {
     setToastMessage(message);
@@ -32,10 +36,10 @@ const Dashboard = () => {
   };
 
   const quickActions = [
-    { title: "Image Generating", description: "Generate beautiful AI art", icon: Image },
-    { title: "Creating Image", description: "Create layouts from text", icon: Sparkles },
-    { title: "Set Reminder", description: "Add schedule alerts", icon: Clock },
-    { title: "Translate", description: "Translate speech instantly", icon: Globe },
+    { title: 'New Note', description: 'Capture ideas instantly', icon: FileText, path: '/notes' },
+    { title: 'New Task', description: 'Plan work and goals', icon: CheckSquare, path: '/tasks' },
+    { title: 'New Reminder', description: 'Stay on schedule', icon: Bell, path: '/reminders' },
+    { title: 'Ask AURA', description: 'Use AI for productivity', icon: Sparkles, path: '/assistant' },
   ];
 
   const filterPills = ['All', 'Reminders', 'Music', 'Searches'];
@@ -53,14 +57,34 @@ const Dashboard = () => {
     ? allHistory 
     : allHistory.filter(item => item.category === activeTab);
 
-  const handleActionClick = (actionName) => {
-    showToast(`Quick Action: "${actionName}" (Phase 2 functionality)`, 'info');
+  useEffect(() => {
+    const loadSummary = async () => {
+      try {
+        const { data } = await api.get('/dashboard/summary');
+        if (data.success) {
+          setSummary(data.summary);
+        }
+      } catch (error) {
+        console.error('[AURA Dashboard Summary Error]:', error);
+      }
+    };
+
+    loadSummary();
+  }, []);
+
+  const handleActionClick = (action) => {
+    if (action.path) {
+      navigate(action.path);
+      return;
+    }
+    showToast(`Quick Action: "${action.title}"`, 'info');
   };
 
   const handleChatSend = async (text) => {
     const trimmed = String(text || '').trim();
-    if (!trimmed) return;
+    if (!trimmed || sendingRef.current) return;
 
+    sendingRef.current = true;
     try {
       const { data } = await api.post('/ai/chat', {
         message: trimmed,
@@ -74,7 +98,9 @@ const Dashboard = () => {
       showToast(data.response || 'Response received', 'success');
     } catch (error) {
       console.error('[AURA Dashboard Chat Error]:', error);
-      showToast(error.response?.data?.message || 'AI request failed', 'error');
+      showToast(error.response?.data?.message || 'AURA could not process that request. Please try again.', 'error');
+    } finally {
+      sendingRef.current = false;
     }
   };
 
@@ -86,7 +112,6 @@ const Dashboard = () => {
         {/* Profile and Greetings */}
         <ProfileHeader username={user?.name || "Sarah"} timeOfDay="Morning" avatar={user?.avatar} />
 
-        {/* 2x2 Quick Actions Grid */}
         <div className="grid grid-cols-2 gap-4 md:gap-5 pt-2">
           {quickActions.map((action, index) => (
             <QuickActionCard
@@ -95,9 +120,27 @@ const Dashboard = () => {
               description={action.description}
               icon={action.icon}
               delay={index * 0.08}
-              onClick={() => handleActionClick(action.title)}
+              onClick={() => handleActionClick(action)}
             />
           ))}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="glass-card p-4 rounded-2xl border border-white/60">
+            <div className="flex items-center justify-between mb-2"><span className="text-xs text-aura-text-muted">Notes</span><FileText className="w-4 h-4 text-aura-primary-purple" /></div>
+            <div className="text-2xl font-semibold text-aura-text-primary">{summary.notes.total}</div>
+            <div className="text-[11px] text-aura-text-secondary mt-1">{summary.notes.pinned} pinned</div>
+          </div>
+          <div className="glass-card p-4 rounded-2xl border border-white/60">
+            <div className="flex items-center justify-between mb-2"><span className="text-xs text-aura-text-muted">Tasks</span><CheckSquare className="w-4 h-4 text-aura-primary-purple" /></div>
+            <div className="text-2xl font-semibold text-aura-text-primary">{summary.tasks.pending}</div>
+            <div className="text-[11px] text-aura-text-secondary mt-1">{summary.tasks.completed} done / {summary.tasks.highPriority} high priority</div>
+          </div>
+          <div className="glass-card p-4 rounded-2xl border border-white/60">
+            <div className="flex items-center justify-between mb-2"><span className="text-xs text-aura-text-muted">Reminders</span><Bell className="w-4 h-4 text-aura-primary-purple" /></div>
+            <div className="text-2xl font-semibold text-aura-text-primary">{summary.reminders.today}</div>
+            <div className="text-[11px] text-aura-text-secondary mt-1">{summary.reminders.upcoming} upcoming</div>
+          </div>
         </div>
 
         {/* Chat History Section */}
@@ -116,14 +159,14 @@ const Dashboard = () => {
           </div>
 
           {/* Filter Pills */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
+          <div className="flex items-center gap-2.5 sm:gap-2.5 overflow-x-auto pb-1 scrollbar-thin">
             {filterPills.map((pill) => {
               const isActive = activeTab === pill;
               return (
                 <button
                   key={pill}
                   onClick={() => setActiveTab(pill)}
-                  className={`px-4.5 py-2.5 rounded-full text-xs font-medium transition-all duration-300 whitespace-nowrap ${
+                  className={`flex items-center justify-center min-w-fit px-5 py-2.5 rounded-full text-xs font-medium transition-all duration-300 whitespace-nowrap text-center ${
                     isActive
                       ? 'btn-gradient-purple text-white shadow-sm'
                       : 'glass-card text-aura-text-secondary hover:text-aura-primary-purple hover:bg-white/50 border border-white/60'

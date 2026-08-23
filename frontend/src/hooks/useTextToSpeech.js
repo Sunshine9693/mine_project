@@ -52,6 +52,15 @@ const pickPreferredVoice = (nextVoices) => {
   return nextVoices[0].name;
 };
 
+export const toSpeechText = (text) => String(text || '')
+  .replace(/```[\s\S]*?```/g, 'Code block omitted.')
+  .replace(/`([^`]+)`/g, '$1')
+  .replace(/https?:\/\/\S+/g, 'link')
+  .replace(/^\s{0,3}#{1,6}\s*/gm, '')
+  .replace(/[*_~]/g, '')
+  .replace(/\s+/g, ' ')
+  .trim();
+
 export const useTextToSpeech = () => {
   const [voices, setVoices] = useState([]);
   const [selectedVoiceName, setSelectedVoiceName] = useState(defaultSettings.voiceName);
@@ -115,6 +124,10 @@ export const useTextToSpeech = () => {
     );
   }, [selectedVoiceName, rate, pitch, volume, autoSpeak]);
 
+  useEffect(() => () => {
+    window.speechSynthesis?.cancel?.();
+  }, []);
+
   const speak = (text) => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
       return false;
@@ -122,7 +135,10 @@ export const useTextToSpeech = () => {
 
     window.speechSynthesis.cancel();
 
-    const utterance = new SpeechSynthesisUtterance(text);
+    const cleanText = toSpeechText(text);
+    if (!cleanText) return false;
+
+    const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.voice = selectedVoice || null;
     utterance.rate = rate;
     utterance.pitch = pitch;
@@ -143,6 +159,11 @@ export const useTextToSpeech = () => {
     };
 
     utterance.onresume = () => {
+      setIsPaused(false);
+    };
+
+    utterance.onerror = () => {
+      setIsSpeaking(false);
       setIsPaused(false);
     };
 

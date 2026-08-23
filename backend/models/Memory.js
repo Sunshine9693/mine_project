@@ -17,11 +17,15 @@ const MemorySchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    default: 'general',
+    enum: ['preference', 'personal', 'education', 'work', 'project', 'communication', 'other'],
+    default: 'other',
     trim: true,
   },
 }, {
   timestamps: true,
 });
+
+MemorySchema.index({ userId: 1, updatedAt: -1 });
+MemorySchema.index({ userId: 1, key: 1 });
 
 module.exports = mongoose.model('Memory', MemorySchema);

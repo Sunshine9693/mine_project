@@ -10,6 +10,10 @@ import Assistant from './pages/Assistant';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Placeholder from './pages/Placeholder';
+import Conversations from './pages/Conversations';
+import NotesPage from './pages/NotesPage';
+import TasksPage from './pages/TasksPage';
+import RemindersPage from './pages/RemindersPage';
 
 // Layout wrapper to conditional render Sidebar and Mobile Nav
 const LayoutWrapper = ({ children }) => {
@@ -60,10 +64,10 @@ const AppRoutes = () => {
       {/* Protected Main Dashboard Pages */}
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/assistant" element={<ProtectedRoute><Assistant /></ProtectedRoute>} />
-      <Route path="/conversations" element={<ProtectedRoute><Placeholder /></ProtectedRoute>} />
-      <Route path="/reminders" element={<ProtectedRoute><Placeholder /></ProtectedRoute>} />
-      <Route path="/notes" element={<ProtectedRoute><Placeholder /></ProtectedRoute>} />
-      <Route path="/tasks" element={<ProtectedRoute><Placeholder /></ProtectedRoute>} />
+      <Route path="/conversations" element={<ProtectedRoute><Conversations /></ProtectedRoute>} />
+      <Route path="/reminders" element={<ProtectedRoute><RemindersPage /></ProtectedRoute>} />
+      <Route path="/notes" element={<ProtectedRoute><NotesPage /></ProtectedRoute>} />
+      <Route path="/tasks" element={<ProtectedRoute><TasksPage /></ProtectedRoute>} />
       <Route path="/search" element={<ProtectedRoute><Placeholder /></ProtectedRoute>} />
       <Route path="/analytics" element={<ProtectedRoute><Placeholder /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><Placeholder /></ProtectedRoute>} />

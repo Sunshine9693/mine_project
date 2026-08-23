@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Volume2, VolumeX, SlidersHorizontal } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import VoiceOrb from '../components/VoiceOrb';
@@ -8,9 +8,11 @@ import Toast from '../components/Toast';
 import api from '../services/api';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { useTextToSpeech } from '../hooks/useTextToSpeech';
+import ChatInput from '../components/ChatInput';
 
 const Assistant = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [orbState, setOrbState] = useState('idle');
   const [speechText, setSpeechText] = useState("I'm Sunshine, here to help you think clearly and move fast.");
   const [toastMessage, setToastMessage] = useState('');
@@ -18,9 +20,14 @@ const Assistant = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [conversationId, setConversationId] = useState(null);
   const [isSending, setIsSending] = useState(false);
+  const [messages, setMessages] = useState([]);
+  const submittedTranscriptRef = useRef('');
+  const sendMessageRef = useRef(null);
+  const sendingRef = useRef(false);
 
   const {
-    transcript,
+    finalTranscript,
+    interimTranscript,
     isListening,
     error,
     supported,
@@ -40,6 +47,7 @@ const Assistant = () => {
     volume,
     setVolume,
     autoSpeak,
+    isSpeaking,
     setAutoSpeak,
     speak,
     stop,
@@ -54,20 +62,44 @@ const Assistant = () => {
     return 'idle';
   }, [isListening, orbState, supported]);
 
-  const sendMessageToAI = async (nextText) => {
+  useEffect(() => {
+    const requestedConversationId = searchParams.get('conversation');
+    if (!requestedConversationId) return;
+
+    const loadConversation = async () => {
+      try {
+        const { data } = await api.get(`/conversations/${requestedConversationId}`);
+        const loadedMessages = data.conversation?.messages || [];
+        setConversationId(requestedConversationId);
+        setMessages(loadedMessages);
+        const lastAssistantMessage = [...loadedMessages].reverse().find((item) => item.role === 'assistant');
+        if (lastAssistantMessage) setSpeechText(lastAssistantMessage.content);
+      } catch (err) {
+        setOrbState('error');
+        setSpeechText(err.response?.data?.message || 'Unable to reopen this conversation.');
+      }
+    };
+
+    loadConversation();
+  }, [searchParams]);
+
+  const sendMessageToAI = async (nextText, inputType = 'TEXT') => {
     const trimmed = String(nextText || '').trim();
-    if (!trimmed || isSending) {
+    if (!trimmed || sendingRef.current) {
       return;
     }
 
+    sendingRef.current = true;
     setIsSending(true);
     setOrbState('thinking');
     setSpeechText(trimmed);
+    setMessages((previous) => [...previous, { role: 'user', content: trimmed }]);
 
     try {
       const { data } = await api.post('/ai/chat', {
         message: trimmed,
         conversationId,
+        inputType,
       });
 
       const nextConversationId = data.conversationId || conversationId;
@@ -77,6 +109,7 @@ const Assistant = () => {
 
       setOrbState('speaking');
       setSpeechText(data.response || 'I am here to help.');
+      setMessages((previous) => [...previous, { role: 'assistant', content: data.response || 'I am here to help.' }]);
 
       if (soundEnabled && autoSpeak && data.response) {
         speak(data.response);
@@ -86,12 +119,16 @@ const Assistant = () => {
     } catch (err) {
       console.error('[AURA Assistant Chat Error]:', err);
       setOrbState('error');
-      setSpeechText(err.response?.data?.message || 'I hit a connection issue. Please try again.');
+      setSpeechText(err.response?.data?.message || 'AURA could not process that request. Please try again.');
       setToastMessage('AI request failed');
     } finally {
+      sendingRef.current = false;
       setIsSending(false);
+      resetTranscript();
     }
   };
+
+  sendMessageRef.current = sendMessageToAI;
 
   useEffect(() => {
     if (!supported) {
@@ -102,15 +139,14 @@ const Assistant = () => {
 
     if (isListening) {
       setOrbState('listening');
-      setSpeechText('I\'m listening. Say something...');
+      setSpeechText(interimTranscript || finalTranscript || 'I\'m listening. Say something...');
       return;
     }
 
-    if (transcript) {
-      const text = transcript.trim();
-      if (text) {
-        sendMessageToAI(text);
-      }
+    const text = finalTranscript.trim();
+    if (text && submittedTranscriptRef.current !== text && !isSending) {
+      submittedTranscriptRef.current = text;
+      sendMessageRef.current?.(text, 'VOICE');
       return;
     }
 
@@ -118,7 +154,7 @@ const Assistant = () => {
       setOrbState('error');
       setSpeechText(error);
     }
-  }, [transcript, isListening, error, supported, soundEnabled, autoSpeak, speak, conversationId, isSending]);
+  }, [finalTranscript, interimTranscript, isListening, error, supported, isSending]);
 
   useEffect(() => {
     if (orbState === 'speaking') {
@@ -133,6 +169,13 @@ const Assistant = () => {
   }, [orbState]);
 
   const handleToggleMic = () => {
+    if (isSpeaking) {
+      stop();
+      setOrbState('idle');
+      setSpeechText('Speech stopped. Ask me anything.');
+      return;
+    }
+
     if (!supported) {
       setOrbState('error');
       setSpeechText('Voice recognition is not supported in this browser. You can still type your message.');
@@ -148,6 +191,7 @@ const Assistant = () => {
     setSpeechText('I\'m listening. Say something...');
     setOrbState('listening');
     resetTranscript();
+    submittedTranscriptRef.current = '';
     startListening();
   };
 
@@ -156,17 +200,26 @@ const Assistant = () => {
   };
 
   const handleClear = () => {
-    stop();
-    stopListening();
-    resetTranscript();
-    setOrbState('idle');
-    setSpeechText('Transcript and voice cache cleared. Ask me anything.');
-    setToastMessage('Session cleared');
-  };
+    const clearConversation = async () => {
+      stop();
+      stopListening();
+      resetTranscript();
+      if (conversationId) {
+        try {
+          await api.delete(`/conversations/${conversationId}`);
+        } catch (err) {
+          setToastMessage(err.response?.data?.message || 'Unable to clear conversation');
+          return;
+        }
+      }
+      setConversationId(null);
+      setMessages([]);
+      setOrbState('idle');
+      setSpeechText('Transcript and voice cache cleared. Ask me anything.');
+      setToastMessage('Session cleared');
+    };
 
-  const triggerErrorState = () => {
-    setOrbState('error');
-    setSpeechText('An unexpected network interruption occurred. Please try again.');
+    clearConversation();
   };
 
   return (
@@ -190,6 +243,7 @@ const Assistant = () => {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setSoundEnabled(!soundEnabled)}
+              aria-label={soundEnabled ? 'Mute AURA' : 'Unmute AURA'}
             className="p-3 rounded-full glass-card text-aura-text-secondary hover:text-aura-primary-purple border border-white/70 shadow-sm focus:outline-none"
           >
             {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
@@ -198,6 +252,7 @@ const Assistant = () => {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setSettingsOpen((prev) => !prev)}
+              aria-label="Open voice settings"
             className="p-3 rounded-full glass-card text-aura-text-secondary hover:text-aura-primary-purple border border-white/70 shadow-sm focus:outline-none"
           >
             <SlidersHorizontal className="w-5 h-5" />
@@ -206,7 +261,20 @@ const Assistant = () => {
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center my-6 w-full px-6">
-        <VoiceOrb state={currentStateLabel} size="lg" />
+          <VoiceOrb state={currentStateLabel} size="lg" />
+
+        {messages.length > 0 && (
+          <div className="mt-6 w-full max-w-lg max-h-40 overflow-y-auto space-y-2 px-1">
+            {messages.slice(-6).map((message, index) => (
+              <div
+                key={`${message.createdAt || 'message'}-${index}`}
+                className={`rounded-2xl px-4 py-2 text-xs leading-relaxed ${message.role === 'user' ? 'ml-8 bg-aura-lavender/40 text-aura-text-primary' : 'mr-8 glass-card text-aura-text-secondary border border-white/50'}`}
+              >
+                {message.content}
+              </div>
+            ))}
+          </div>
+        )}
 
         <div className="mt-12 w-full max-w-lg min-h-[120px] flex items-center justify-center">
           <AnimatePresence mode="wait">
@@ -279,9 +347,17 @@ const Assistant = () => {
         </div>
       )}
 
+      {error && supported && (
+        <div className="mb-4 w-full max-w-lg rounded-[24px] border border-red-200 bg-red-50/80 px-4 py-3 text-center text-xs text-red-600">
+          {error}
+        </div>
+      )}
+
       <div className="w-full pb-4">
+        <ChatInput onSend={sendMessageToAI} onMicClick={handleToggleMic} />
         <VoiceControls
           isListening={isListening}
+          isSpeaking={isSpeaking}
           onToggleMic={handleToggleMic}
           onToggleChat={handleToggleChat}
           onClear={handleClear}

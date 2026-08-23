@@ -1,8 +1,8 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 
-const PrimaryButton = ({ children, onClick, className = '', icon, variant = 'primary' }) => {
-  const baseStyles = "flex items-center justify-center gap-2 font-medium transition-all px-6 py-3.5 rounded-full text-base focus:outline-none shadow-glass-button";
+const PrimaryButton = ({ children, onClick, className = '', icon, variant = 'primary', type = 'button', disabled = false }) => {
+  const baseStyles = "flex items-center justify-center gap-2 font-medium transition-all px-6 py-3.5 rounded-full text-base focus:outline-none shadow-glass-button disabled:opacity-60 disabled:cursor-not-allowed";
   
   const variants = {
     primary: "btn-gradient-purple text-white hover:opacity-90 active:scale-[0.98]",
@@ -12,9 +12,11 @@ const PrimaryButton = ({ children, onClick, className = '', icon, variant = 'pri
 
   return (
     <motion.button
-      whileHover={{ y: -1 }}
-      whileTap={{ scale: 0.98 }}
+      whileHover={disabled ? undefined : { y: -1 }}
+      whileTap={disabled ? undefined : { scale: 0.98 }}
+      type={type}
       onClick={onClick}
+      disabled={disabled}
       className={`${baseStyles} ${variants[variant]} ${className}`}
     >
       {icon && <span className="w-5 h-5 flex items-center justify-center">{icon}</span>}

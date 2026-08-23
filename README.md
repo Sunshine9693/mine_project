@@ -103,3 +103,11 @@ From the `frontend` folder, start the Vite development server:
 npm run dev
 ```
 The client dashboard will load on `http://localhost:5173`.
+
+## Phase 4 configuration
+
+Copy `backend/.env.example` to `backend/.env` and set `MONGO_URI`, `JWT_SECRET`, and `AI_API_KEY`. `AI_API_URL` is an OpenAI-compatible chat-completions endpoint and defaults to OpenAI when omitted; `AI_MODEL` selects the provider model. These values stay server-side and are never sent to React.
+
+Phase 4 adds authenticated `POST /api/ai/chat` plus conversation persistence under `/api/conversations` and memory CRUD under `/api/memory`. Memory commands such as `Remember that I prefer concise answers`, `Forget that I prefer concise answers`, and `What do you remember about me?` are handled by the backend before a normal chat is sent to the provider.
+
+Run backend checks with `npm test` from `backend`, and build/lint the frontend with `npm run build` and `npm run lint` from `frontend`.
