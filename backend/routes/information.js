@@ -1,0 +1,11 @@
+const express = require('express');
+const { protect } = require('../middleware/authMiddleware');
+const controller = require('../controllers/informationController');
+const router = express.Router();
+router.use(protect);
+router.get('/weather', controller.weather);
+router.get('/search', controller.search);
+router.get('/time', controller.time);
+router.get('/date', controller.date);
+router.post('/translate', controller.translation);
+module.exports = router;

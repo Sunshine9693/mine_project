@@ -26,20 +26,25 @@ const generateTokenAndSetCookie = (res, userId) => {
 // @access  Public
 exports.register = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const name = String(req.body?.name || '').trim();
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    const password = String(req.body?.password || '');
 
-    if (!name || !email || !password) {
-      return res.status(400).json({ message: 'Please provide name, email and password' });
+    if (name.length < 2 || name.length > 80 || !email || !password) {
+      return res.status(400).json({ success: false, message: 'Please provide a valid name, email and password.' });
     }
 
-    if (password.length < 6) {
-      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    if (!/^\S+@\S+\.\S+$/.test(email)) {
+      return res.status(400).json({ success: false, message: 'Please provide a valid email address.' });
+    }
+    if (password.length < 6 || password.length > 128) {
+      return res.status(400).json({ success: false, message: 'Password must be between 6 and 128 characters.' });
     }
 
     // Check if user already exists
     const userExists = await User.findOne({ email });
     if (userExists) {
-      return res.status(400).json({ message: 'A user with this email already exists' });
+      return res.status(409).json({ success: false, message: 'A user with this email already exists.' });
     }
 
     // Hash password
@@ -57,16 +62,18 @@ exports.register = async (req, res) => {
     // Generate token and set HTTP cookie
     generateTokenAndSetCookie(res, user._id);
 
+    const safeUser = {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      avatar: user.avatar,
+      preferences: user.preferences,
+      assistantSettings: user.assistantSettings,
+    };
     res.status(201).json({
       success: true,
-      user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        avatar: user.avatar,
-        preferences: user.preferences,
-        assistantSettings: user.assistantSettings
-      }
+      data: safeUser,
+      user: safeUser,
     });
 
   } catch (error) {
@@ -80,37 +87,40 @@ exports.register = async (req, res) => {
 // @access  Public
 exports.login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    const password = String(req.body?.password || '');
 
     if (!email || !password) {
-      return res.status(400).json({ message: 'Please provide email and password' });
+      return res.status(400).json({ success: false, message: 'Please provide email and password.' });
     }
 
     // Find user
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
     // Compare passwords
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
     // Generate token and set HTTP cookie
     generateTokenAndSetCookie(res, user._id);
 
+    const safeUser = {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      avatar: user.avatar,
+      preferences: user.preferences,
+      assistantSettings: user.assistantSettings,
+    };
     res.status(200).json({
       success: true,
-      user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        avatar: user.avatar,
-        preferences: user.preferences,
-        assistantSettings: user.assistantSettings
-      }
+      data: safeUser,
+      user: safeUser,
     });
 
   } catch (error) {
@@ -126,15 +136,16 @@ exports.me = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('-password');
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ success: false, message: 'User not found' });
     }
     res.status(200).json({
       success: true,
+      data: user,
       user
     });
   } catch (error) {
     console.error('[AURA Auth Me Error]:', error);
-    res.status(500).json({ message: 'Server error fetching user profile' });
+    res.status(500).json({ success: false, message: 'Server error fetching user profile' });
   }
 };
 

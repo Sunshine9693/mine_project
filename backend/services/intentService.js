@@ -1,4 +1,4 @@
-const FUTURE_INTENTS = ['CREATE_TASK', 'CREATE_NOTE', 'CREATE_REMINDER', 'WEATHER', 'SEARCH', 'CALCULATE', 'TRANSLATE'];
+const FUTURE_INTENTS = ['CREATE_TASK', 'CREATE_NOTE', 'CREATE_REMINDER', 'WEATHER', 'SEARCH', 'CALCULATE', 'TIME', 'DATE', 'TRANSLATE'];
 
 const normalizeTitle = (value) => String(value || '').trim().replace(/\s+/g, ' ').replace(/[.!?]+$/, '');
 
@@ -105,6 +105,13 @@ const parseReminderInput = (message = '') => {
 const detectIntent = (message = '') => {
   const text = String(message).trim();
   const lower = text.toLowerCase();
+
+  if (/\b(weather|temperature|forecast|rain)\b/i.test(lower) && !/my\s+weather/i.test(lower)) return 'WEATHER';
+  if (/^(search|find|look up)\b|\b(search the web|latest .* news|what happened today in)\b/i.test(lower)) return 'SEARCH';
+  if (/^(calculate|compute)\b|\b(\d+(?:\.\d+)?\s*(?:\+|-|\*|\/|%|times|multiplied|divided|percent|power))\b/i.test(lower)) return 'CALCULATE';
+  if (/\bwhat time is it\b|\btime\s+(?:is it|in|at)\b/i.test(lower)) return 'TIME';
+  if (/\b(today'?s date|what date|what day is today|next\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday))\b/i.test(lower)) return 'DATE';
+  if (/\b(?:translate|how do i say)\b/i.test(lower)) return 'TRANSLATE';
 
   if (/\bnotes?\b.*\b(search|show|list|get|find)\b|show my notes|what notes|notes about/i.test(lower)) {
     return 'SEARCH_NOTES';

@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const { generateAIResponse, MAX_CONTEXT_MESSAGES } = require('../services/aiService');
-const { detectIntent, parseNoteInput, parseTaskInput, parseReminderInput } = require('../services/intentService');
+const { detectIntent, FUTURE_INTENTS, parseNoteInput, parseTaskInput, parseReminderInput } = require('../services/intentService');
 const { resolveReminderDate } = require('../utils/timezone');
 const Conversation = require('../models/Conversation');
 const Memory = require('../models/Memory');
@@ -8,6 +8,7 @@ const Note = require('../models/Note');
 const Task = require('../models/Task');
 const Reminder = require('../models/Reminder');
 const User = require('../models/User');
+const { routeAction } = require('../services/actionRouter');
 
 const MAX_MESSAGE_LENGTH = 8000;
 
@@ -339,7 +340,9 @@ exports.chat = async (req, res) => {
     conversation.messages.push({ role: 'user', content: message, type: 'message', inputType });
 
     let result;
-    if (intent === 'CHAT') {
+    if (FUTURE_INTENTS.includes(intent) && ['WEATHER', 'SEARCH', 'CALCULATE', 'TIME', 'DATE', 'TRANSLATE'].includes(intent)) {
+      result = await routeAction({ intent, message });
+    } else if (intent === 'CHAT') {
       const [user, memories] = await Promise.all([
         User.findById(userId).select('name preferences assistantSettings').lean(),
         Memory.find({ userId }).sort({ updatedAt: -1 }).limit(50).lean(),

@@ -11,22 +11,29 @@ export const AuthProvider = ({ children }) => {
 
   // Load user session on mount
   useEffect(() => {
-    const loadUser = async () => {
-      try {
-        const response = await api.get('/auth/me');
-        if (response.data && response.data.success) {
-          setUser(response.data.user);
-          setIsAuthenticated(true);
-        }
-      } catch (err) {
-        // Silent catch: user is simply unauthenticated
-        console.log('[AURA Auth] No active session found');
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadUser();
+    refreshUser();
   }, []);
+
+  const refreshUser = async () => {
+    setLoading(true);
+    try {
+      const response = await api.get('/auth/me');
+      if (response.data && response.data.success) {
+        setUser(response.data.user || response.data.data);
+        setIsAuthenticated(true);
+        return response.data.user || response.data.data;
+      }
+      setUser(null);
+      setIsAuthenticated(false);
+    } catch (err) {
+      setUser(null);
+      setIsAuthenticated(false);
+      console.log('[AURA Auth] No active session found');
+    } finally {
+      setLoading(false);
+    }
+    return null;
+  };
 
   // Login handler
   const login = async (email, password) => {
@@ -34,7 +41,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await api.post('/auth/login', { email, password });
       if (response.data && response.data.success) {
-        setUser(response.data.user);
+        setUser(response.data.user || response.data.data);
         setIsAuthenticated(true);
         return { success: true };
       }
@@ -52,7 +59,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await api.post('/auth/register', { name, email, password });
       if (response.data && response.data.success) {
-        setUser(response.data.user);
+        setUser(response.data.user || response.data.data);
         setIsAuthenticated(true);
         return { success: true };
       }
@@ -85,6 +92,7 @@ export const AuthProvider = ({ children }) => {
       login,
       register,
       logout,
+      refreshUser,
       setError
     }}>
       {children}

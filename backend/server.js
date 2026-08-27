@@ -90,6 +90,9 @@ const noteRoutes = require('./routes/notes');
 const taskRoutes = require('./routes/tasks');
 const reminderRoutes = require('./routes/reminders');
 const productivityRoutes = require('./routes/productivity');
+const informationRoutes = require('./routes/information');
+const userRoutes = require('./routes/users');
+const errorMiddleware = require('./middleware/errorMiddleware');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/ai', aiRoutes);
@@ -99,6 +102,17 @@ app.use('/api/notes', noteRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/reminders', reminderRoutes);
 app.use('/api/dashboard', productivityRoutes);
+app.use('/api/users', userRoutes);
+
+const informationLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Information service is temporarily rate limited. Please try again shortly.' },
+});
+app.use(['/api/weather', '/api/search', '/api/translate'], informationLimiter);
+app.use('/api', informationRoutes);
 
 app.get('/api/health', (req, res) => {
   res.status(200).json({
@@ -106,6 +120,8 @@ app.get('/api/health', (req, res) => {
     service: 'AURA API'
   });
 });
+
+app.use(errorMiddleware);
 
 // Start Server
 app.listen(PORT, () => {

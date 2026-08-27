@@ -8,8 +8,8 @@ const protect = async (req, res, next) => {
     token = req.cookies.token;
   }
   // 2. Check for token in Authorization header as fallback
-  else if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-    token = req.headers.authorization.split(' ')[1];
+  else if (req.headers.authorization && /^Bearer\s+/i.test(req.headers.authorization)) {
+    token = req.headers.authorization.replace(/^Bearer\s+/i, '').trim();
   }
 
   // Check if token exists

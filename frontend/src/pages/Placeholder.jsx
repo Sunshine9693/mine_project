@@ -57,11 +57,6 @@ const Placeholder = () => {
             </p>
           </div>
 
-          {/* Badge */}
-          <span className="px-3.5 py-1.5 rounded-full bg-white/70 text-[10px] md:text-xs font-semibold tracking-wider text-aura-soft-purple uppercase border border-aura-lavender">
-            Phase 2 Feature
-          </span>
-
           {/* Action Back Button */}
           <div className="pt-2">
             <PrimaryButton 

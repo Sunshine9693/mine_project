@@ -9,6 +9,7 @@ import api from '../services/api';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { useTextToSpeech } from '../hooks/useTextToSpeech';
 import ChatInput from '../components/ChatInput';
+import InformationResult from '../components/InformationResult';
 
 const Assistant = () => {
   const navigate = useNavigate();
@@ -21,6 +22,7 @@ const Assistant = () => {
   const [conversationId, setConversationId] = useState(null);
   const [isSending, setIsSending] = useState(false);
   const [messages, setMessages] = useState([]);
+  const [activeAction, setActiveAction] = useState(null);
   const submittedTranscriptRef = useRef('');
   const sendMessageRef = useRef(null);
   const sendingRef = useRef(false);
@@ -109,13 +111,14 @@ const Assistant = () => {
 
       setOrbState('speaking');
       setSpeechText(data.response || 'I am here to help.');
+      setActiveAction(data.action || null);
       setMessages((previous) => [...previous, { role: 'assistant', content: data.response || 'I am here to help.' }]);
 
       if (soundEnabled && autoSpeak && data.response) {
         speak(data.response);
       }
 
-      setToastMessage(data.action ? `Action detected: ${data.action}` : 'Response received');
+      setToastMessage(data.action ? `Action completed: ${data.action.type || data.action}` : 'Response received');
     } catch (err) {
       console.error('[AURA Assistant Chat Error]:', err);
       setOrbState('error');
@@ -290,6 +293,7 @@ const Assistant = () => {
             </motion.div>
           </AnimatePresence>
         </div>
+        {activeAction && <div className="mt-4 w-full max-w-lg"><InformationResult action={activeAction} /></div>}
       </div>
 
       {settingsOpen && (
