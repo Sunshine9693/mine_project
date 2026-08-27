@@ -151,3 +151,56 @@ Status: ✅ All Tests Passed
 
 Commit: `3b5df0b`
 
+## 🚀 Phase 6 — Smart Weather & Utility Features
+
+Phase 6 enhances **AURA** with smart utility capabilities, allowing users to get real-time weather information and interact with weather-related features using natural-language and voice commands.
+
+### ✨ Features
+
+* 🌤️ **Weather Information** — Get current weather conditions for a requested location.
+* 🌡️ **Temperature Details** — Provides current temperature information along with weather conditions.
+* 💧 **Weather Details** — Displays useful information such as humidity and other available weather parameters.
+* 📍 **Location-Based Weather** — Fetch weather information for different cities and locations.
+* 🗣️ **Natural Language Support** — Understands weather-related user queries naturally.
+* 🎙️ **Voice Integration** — Weather requests can be made through AURA's voice interface.
+* 🔄 **Real-Time Data** — Retrieves updated weather information through a weather API.
+* ⚠️ **Error Handling** — Handles invalid locations, missing information, and API-related errors gracefully.
+
+### 🧪 Testing
+
+Phase 6 includes testing for weather-related queries, location handling, API responses, and error cases.
+
+```text
+Tests: Completed
+Passed: All Implemented Tests
+Failed: 0
+Status: ✅ All Tests Passed
+```
+
+### 🛠️ Key Technologies
+
+**Frontend:** React.js
+**Backend:** Node.js + Express.js
+**Database:** MongoDB
+**AI:** Gemini / AI Provider
+**Weather API:** Weather API Integration
+**Testing:** Node.js Test Runner
+
+### 🔄 Example Queries
+
+Users can interact with AURA using natural language:
+
+```text
+"What is the weather in Hyderabad?"
+"Tell me today's weather in Delhi."
+"What's the temperature in Mumbai?"
+"How is the weather in Patna?"
+```
+
+AURA processes the request, identifies the location, retrieves the latest weather information, and presents the result to the user.
+
+### ✅ Phase 6 Status
+
+**Completed and successfully implemented.** 🌤️🚀
+
+
