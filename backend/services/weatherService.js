@@ -8,14 +8,55 @@ const weatherError = (code, message, status = 502) =>
 
 const normalizeCity = (city) => String(city || '')
   .trim()
-  .replace(/^(?:how(?:'s|\s+is)\s+)?/i, '')
-  .replace(/^(?:the\s+)?weather\s+(?:in|for)\s+/i, '')
-  .replace(/^(?:what(?:'s|\s+is)\s+)?(?:the\s+)?temperature\s+(?:in|for)\s+/i, '')
+  .replace(/^\s*can\s+you\s+tell\s+me\s+(?:the\s+)?/i, '')
+  .replace(/^\s*(?:how(?:'s|\s+is)\s+)?/i, '')
+  .replace(/^\s*(?:what(?:\s+about|(?:'s|\s+is))\s+)?(?:the\s+)?/i, '')
+  .replace(/^\s*(?:weather|temperature|forecast|conditions?)\s+(?:in|for|of|at|near)\s+/i, '')
+  .replace(/^\s*(?:is\s+it\s+)?(?:rain(?:ing)?|snow(?:ing)?|sunny|cloudy|clear)\s+(?:in|for|of|at|near)\s+/i, '')
+  .replace(/\b(?:here|outside)\b/gi, '')
   .replace(/[?.!,]+$/g, '')
-  .replace(/\s+(?:today|tomorrow|tonight|forecast|right now)\s*$/i, '')
+  .replace(/\s+(?:today|tomorrow|tonight|forecast|right now|outside|now)\s*$/i, '')
   .replace(/[?.!,]+$/g, '')
   .replace(/\s+/g, ' ')
-  .slice(0, 100);
+  .slice(0, 100)
+  .replace(/^\s+|\s+$/g, '');
+
+const extractWeatherLocation = (message) => {
+  if (!message) return null;
+
+  const text = String(message).trim();
+  let candidate = text.replace(/\s+/g, ' ');
+
+  const prefixPatterns = [
+    /^(?:what(?:'s|\s+is)|how(?:'s|\s+is)|tell\s+me|can\s+you\s+tell\s+me)\s+(?:the\s+)?/i,
+    /^(?:weather|forecast|temperature|conditions?)\s+(?:in|for|of|at|near)\s+/i,
+    /^(?:is\s+it\s+)?(?:rain(?:ing)?|snow(?:ing)?|sunny|cloudy|clear)\s+(?:in|for|of|at|near)\s+/i,
+  ];
+
+  for (const pattern of prefixPatterns) {
+    candidate = candidate.replace(pattern, '');
+  }
+
+  const cleaned = normalizeCity(candidate);
+  return cleaned || null;
+};
+
+const resolveWeatherLocation = ({ message, userLocation, fallbackCity }) => {
+  const explicitLocation = extractWeatherLocation(message);
+  if (explicitLocation) {
+    return { explicit: explicitLocation, location: explicitLocation };
+  }
+
+  if (userLocation && Number.isFinite(userLocation.latitude) && Number.isFinite(userLocation.longitude)) {
+    return { explicit: null, location: userLocation, fromUserLocation: true };
+  }
+
+  if (fallbackCity && String(fallbackCity).trim()) {
+    return { explicit: null, location: String(fallbackCity).trim(), fromFallback: true };
+  }
+
+  return { explicit: null, location: null, fromFallback: false };
+};
 
 const getWeatherDescription = (code) => {
   const descriptions = {
@@ -52,21 +93,30 @@ const getWeatherDescription = (code) => {
   return descriptions[code] || 'Unknown';
 };
 
-const getWeather = async (city) => {
-  const normalizedCity = normalizeCity(city);
+const getWeather = async (cityOrLocation, userLocation = null) => {
+  const explicitCoordinates = cityOrLocation && typeof cityOrLocation === 'object' && Number.isFinite(cityOrLocation.latitude) && Number.isFinite(cityOrLocation.longitude)
+    ? cityOrLocation
+    : null;
 
-  console.log('[AURA Weather] City received:', normalizedCity);
+  const normalizedCity = explicitCoordinates ? '' : normalizeCity(cityOrLocation);
 
-  if (!normalizedCity) {
+  console.log('[AURA Weather] Query city received:', cityOrLocation);
+  console.log('[AURA Weather] Extracted location:', normalizedCity || 'none');
+  console.log('[AURA Weather] User location provided:', userLocation ? { latitude: userLocation.latitude, longitude: userLocation.longitude } : 'none');
+
+  if (!normalizedCity && !explicitCoordinates && !(userLocation && Number.isFinite(userLocation.latitude) && Number.isFinite(userLocation.longitude))) {
     throw weatherError(
-      'WEATHER_CITY_REQUIRED',
-      'Please provide a city for the weather.',
+      'WEATHER_LOCATION_REQUIRED',
+      'I couldn\'t find that location. Please provide the city and country.',
       400
     );
   }
 
+  const locationKey = explicitCoordinates
+    ? `${explicitCoordinates.latitude},${explicitCoordinates.longitude}`
+    : (normalizedCity || `${userLocation?.latitude ?? ''},${userLocation?.longitude ?? ''}` || 'current-location');
 
-  const cacheKey = normalizedCity.toLowerCase();
+  const cacheKey = String(locationKey).toLowerCase();
 
   const cached = cache.get(cacheKey);
 
@@ -75,38 +125,71 @@ const getWeather = async (city) => {
   }
 
   try {
-    // 1. Convert city name → latitude/longitude
-    const geoResponse = await axios.get(
-      'https://geocoding-api.open-meteo.com/v1/search',
-      {
-        params: {
-          name: normalizedCity,
-          count: 1,
-          language: 'en',
-          format: 'json',
-        },
-        timeout: 10000,
+    let latitude;
+    let longitude;
+    let location = null;
+
+    if (explicitCoordinates) {
+      latitude = explicitCoordinates.latitude;
+      longitude = explicitCoordinates.longitude;
+      console.log('[AURA Weather] Using explicit coordinates:', { latitude, longitude });
+    } else if (normalizedCity) {
+      console.log('[AURA Weather] Geocoding city request:', normalizedCity);
+      const geoResponse = await axios.get(
+        'https://geocoding-api.open-meteo.com/v1/search',
+        {
+          params: {
+            name: normalizedCity,
+            count: 1,
+            language: 'en',
+            format: 'json',
+          },
+          timeout: 10000,
+        }
+      );
+
+      location = geoResponse.data?.results?.[0];
+
+      console.log('[AURA Weather] Geocoded location result:', location ? {
+        name: location.name,
+        country: location.country,
+        latitude: location.latitude,
+        longitude: location.longitude,
+      } : 'no match');
+
+      if (!location) {
+        throw weatherError(
+          'WEATHER_CITY_NOT_FOUND',
+          'I could not find that location. Please provide the city and country.',
+          404
+        );
       }
-    );
 
-    const location = geoResponse.data?.results?.[0];
+      ({ latitude, longitude } = location);
+    } else if (userLocation && Number.isFinite(userLocation.latitude) && Number.isFinite(userLocation.longitude)) {
+      latitude = userLocation.latitude;
+      longitude = userLocation.longitude;
+      console.log('[AURA Weather] Using browser geolocation:', { latitude, longitude });
+    }
 
-    console.log('[AURA Weather] Geocoding result:', location ? {
-      name: location.name,
-      country: location.country,
-      latitude: location.latitude,
-      longitude: location.longitude,
-    } : 'no match');
-
-    if (!location) {
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
       throw weatherError(
-        'WEATHER_CITY_NOT_FOUND',
-        'I could not find that city.',
-        404
+        'WEATHER_LOCATION_REQUIRED',
+        'I couldn\'t find that location. Please provide the city and country.',
+        400
       );
     }
 
-    const { latitude, longitude } = location;
+    const weatherLocation = location || {
+      name: normalizedCity || 'Current location',
+      country: userLocation?.country || 'Current location',
+      latitude,
+      longitude,
+    };
+
+    console.log('[AURA Weather] Weather API latitude:', latitude);
+    console.log('[AURA Weather] Weather API longitude:', longitude);
+    console.log('[AURA Weather] Weather API location:', weatherLocation.name || 'Current location');
 
     // 2. Get weather data
     const weatherResponse = await axios.get(
@@ -175,8 +258,8 @@ const getWeather = async (city) => {
 
     // 4. Create clean AURA weather object
     const value = {
-      city: location.name,
-      country: location.country,
+      city: weatherLocation.name,
+      country: weatherLocation.country,
       latitude,
       longitude,
 
@@ -227,6 +310,7 @@ const getWeather = async (city) => {
     }
 
     console.error('[AURA Weather Error]:', error.message);
+    console.log('[AURA Weather] API response status:', error.response?.status || 'n/a');
 
     if (error.response?.status === 429) {
       throw weatherError(
@@ -247,5 +331,7 @@ const getWeather = async (city) => {
 module.exports = {
   getWeather,
   normalizeCity,
+  extractWeatherLocation,
+  resolveWeatherLocation,
   CACHE_MS,
 };

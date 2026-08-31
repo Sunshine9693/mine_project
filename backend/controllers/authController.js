@@ -1,6 +1,9 @@
+const mongoose = require('mongoose');
 const User = require('../models/User');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+
+const isDatabaseReady = () => mongoose.connection.readyState === 1;
 
 // Helper to generate JWT token and set cookie
 const generateTokenAndSetCookie = (res, userId) => {
@@ -26,6 +29,13 @@ const generateTokenAndSetCookie = (res, userId) => {
 // @access  Public
 exports.register = async (req, res) => {
   try {
+    if (!isDatabaseReady()) {
+      return res.status(503).json({
+        success: false,
+        message: 'Authentication service is temporarily unavailable. Please try again in a moment.'
+      });
+    }
+
     const name = String(req.body?.name || '').trim();
     const email = String(req.body?.email || '').trim().toLowerCase();
     const password = String(req.body?.password || '');
@@ -78,7 +88,18 @@ exports.register = async (req, res) => {
 
   } catch (error) {
     console.error('[AURA Register Error]:', error);
-    res.status(500).json({ message: 'Server error during registration' });
+    const isDbIssue = error?.name === 'MongooseServerSelectionError' ||
+      error?.name === 'MongoServerSelectionError' ||
+      /ECONNREFUSED|buffering timed out|database/i.test(error?.message || '');
+
+    if (isDbIssue) {
+      return res.status(503).json({
+        success: false,
+        message: 'Authentication service is temporarily unavailable. Please try again in a moment.'
+      });
+    }
+
+    return res.status(500).json({ success: false, message: 'Server error during registration' });
   }
 };
 
@@ -87,6 +108,13 @@ exports.register = async (req, res) => {
 // @access  Public
 exports.login = async (req, res) => {
   try {
+    if (!isDatabaseReady()) {
+      return res.status(503).json({
+        success: false,
+        message: 'Authentication service is temporarily unavailable. Please try again in a moment.'
+      });
+    }
+
     const email = String(req.body?.email || '').trim().toLowerCase();
     const password = String(req.body?.password || '');
 
@@ -125,7 +153,18 @@ exports.login = async (req, res) => {
 
   } catch (error) {
     console.error('[AURA Login Error]:', error);
-    res.status(500).json({ message: 'Server error during login' });
+    const isDbIssue = error?.name === 'MongooseServerSelectionError' ||
+      error?.name === 'MongoServerSelectionError' ||
+      /ECONNREFUSED|buffering timed out|database/i.test(error?.message || '');
+
+    if (isDbIssue) {
+      return res.status(503).json({
+        success: false,
+        message: 'Authentication service is temporarily unavailable. Please try again in a moment.'
+      });
+    }
+
+    return res.status(500).json({ success: false, message: 'Server error during login' });
   }
 };
 

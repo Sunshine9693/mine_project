@@ -341,7 +341,11 @@ exports.chat = async (req, res) => {
 
     let result;
     if (FUTURE_INTENTS.includes(intent) && ['WEATHER', 'SEARCH', 'CALCULATE', 'TIME', 'DATE', 'TRANSLATE'].includes(intent)) {
-      result = await routeAction({ intent, message });
+      result = await routeAction({
+        intent,
+        message,
+        userLocation: req.body.location || req.body.userLocation || null,
+      });
     } else if (intent === 'CHAT') {
       const [user, memories] = await Promise.all([
         User.findById(userId).select('name preferences assistantSettings').lean(),

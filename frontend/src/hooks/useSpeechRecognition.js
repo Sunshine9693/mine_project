@@ -8,6 +8,26 @@ export const getSpeechRecognitionCtor = () => {
   return window.SpeechRecognition || window.webkitSpeechRecognition || undefined;
 };
 
+export const getSpeechRecognitionErrorMessage = (error, { secureContext = typeof window === 'undefined' ? true : window.isSecureContext } = {}) => {
+  if (!secureContext) {
+    return 'Voice recognition requires localhost or HTTPS. You can still type your message.';
+  }
+
+  switch (error) {
+    case 'not-allowed':
+    case 'service-not-allowed':
+      return 'Microphone access is required for voice commands.';
+    case 'no-speech':
+      return 'No speech detected. Please try again.';
+    case 'audio-capture':
+      return 'I could not access your microphone.';
+    case 'network':
+      return 'Voice recognition service is unavailable in this browser. Please try Chrome or Edge and allow microphone access.';
+    default:
+      return 'I could not understand that. Please try again.';
+  }
+};
+
 export const useSpeechRecognition = ({ lang = 'en-US', continuous = false, silenceTimeout = 8000 } = {}) => {
   const recognitionRef = useRef(null);
   const silenceTimerRef = useRef(null);
@@ -21,6 +41,12 @@ export const useSpeechRecognition = ({ lang = 'en-US', continuous = false, silen
   const supported = Boolean(SpeechRecognitionCtor);
 
   useEffect(() => {
+    if (typeof window !== 'undefined' && !window.isSecureContext) {
+      setPermissionState('NOT_SUPPORTED');
+      setError(getSpeechRecognitionErrorMessage('network', { secureContext: false }));
+      return undefined;
+    }
+
     if (!SpeechRecognitionCtor) {
       setPermissionState('NOT_SUPPORTED');
       setError('Voice recognition is not supported in this browser. You can still type your message.');
@@ -72,15 +98,15 @@ export const useSpeechRecognition = ({ lang = 'en-US', continuous = false, silen
       clearTimeout(silenceTimerRef.current);
       if (message === 'not-allowed' || message === 'service-not-allowed') {
         setPermissionState('PERMISSION_DENIED');
-        setError('Microphone access is required for voice commands.');
+        setError(getSpeechRecognitionErrorMessage(message));
       } else if (message === 'no-speech') {
-        setError('No speech detected. Please try again.');
+        setError(getSpeechRecognitionErrorMessage(message));
       } else if (message === 'audio-capture') {
-        setError('I could not access your microphone.');
+        setError(getSpeechRecognitionErrorMessage(message));
       } else if (message === 'network') {
-        setError('Voice recognition could not connect. Please try again.');
+        setError(getSpeechRecognitionErrorMessage(message));
       } else {
-        setError('I could not understand that. Please try again.');
+        setError(getSpeechRecognitionErrorMessage(message));
       }
     };
 
@@ -98,6 +124,11 @@ export const useSpeechRecognition = ({ lang = 'en-US', continuous = false, silen
   }, [SpeechRecognitionCtor, continuous, lang, silenceTimeout]);
 
   const startListening = () => {
+    if (typeof window !== 'undefined' && !window.isSecureContext) {
+      setError(getSpeechRecognitionErrorMessage('network', { secureContext: false }));
+      return false;
+    }
+
     if (!SpeechRecognitionCtor) {
       setError('Voice recognition is not supported in this browser. You can still type your message.');
       return false;
