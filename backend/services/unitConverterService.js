@@ -40,16 +40,45 @@ const UNIT_FACTORS = {
   },
 };
 
-const normalizeUnit = (value = '') => String(value || '')
-  .trim()
-  .toLowerCase()
-  .replace(/s$/i, '')
-  .replace(/\s+/g, '')
-  .replace(/metre/g, 'meter')
-  .replace(/kilometre/g, 'kilometer')
-  .replace(/centimetre/g, 'centimeter')
-  .replace(/millimetre/g, 'millimeter')
-  .replace(/litre/g, 'liter');
+const normalizeUnit = (value = '') => {
+  const normalized = String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '')
+    .replace(/metre/g, 'meter')
+    .replace(/kilometre/g, 'kilometer')
+    .replace(/centimetre/g, 'centimeter')
+    .replace(/millimetre/g, 'millimeter')
+    .replace(/litre/g, 'liter')
+    .replace(/liters/g, 'liter')
+    .replace(/meters/g, 'meter')
+    .replace(/kilometers/g, 'kilometer')
+    .replace(/centimeters/g, 'centimeter')
+    .replace(/millimeters/g, 'millimeter')
+    .replace(/grams/g, 'gram')
+    .replace(/pounds/g, 'pound')
+    .replace(/ounces/g, 'ounce')
+    .replace(/gallons/g, 'gallon')
+    .replace(/miles/g, 'mile')
+    .replace(/yards/g, 'yard')
+    .replace(/feet/g, 'foot')
+    .replace(/inches/g, 'inch')
+    .replace(/seconds/g, 'second')
+    .replace(/minutes/g, 'minute')
+    .replace(/hours/g, 'hour')
+    .replace(/days/g, 'day')
+    .replace(/celsius/g, 'celsius')
+    .replace(/fahrenheit/g, 'fahrenheit')
+    .replace(/kelvin/g, 'kelvin');
+
+  if (!normalized) return '';
+
+  const canonical = Object.values(UNIT_FACTORS)
+    .flatMap((categoryUnits) => Object.keys(categoryUnits))
+    .find((candidate) => candidate === normalized || candidate === normalized.slice(0, -1));
+
+  return canonical || normalized;
+};
 
 const resolveCategory = (unit) => {
   for (const [category, units] of Object.entries(UNIT_FACTORS)) {

@@ -1,229 +1,282 @@
-# AURA — My Personalized AI Voice Assistant
+# AURA
 
-AURA is a premium, personalized AI voice assistant designed with a calm, light-themed, iOS-inspired glassmorphic interface.
+AURA is a personalized AI voice assistant for productivity, memory, notes, tasks, reminders, and contextual conversations. The project keeps a single user-scoped architecture: a React + Vite frontend, an Express + MongoDB backend, and a secure JWT session model for authenticated user data.
 
-The application is structured into two completely independent service folders: `frontend` and `backend`.
+## Project overview
 
----
+AURA combines:
+- conversational AI
+- voice-first interaction
+- personal memory and profile settings
+- notes, tasks, reminders, and dashboard analytics
+- utility tools such as weather, calculator, translation, and search
+- user-isolated data and OAuth-like session-based authentication via cookies and JWT
 
-## 1. Tech Stack
+## Feature list
 
-### Frontend
-- **Framework**: React (Vite template)
-- **Styling**: Tailwind CSS v3 (Custom palette configuration)
-- **Animations**: Framer Motion
-- **Icons**: Lucide React
-- **Router**: React Router v6
-- **HTTP Client**: Axios
+- Personalized assistant profile and settings
+- Voice interaction and speech recognition support
+- AI-powered conversations with memory-aware prompts
+- Notes, tasks, and reminders management
+- Productivity dashboard and analytics
+- User-specific activity and privacy summary views
+- Weather, search, translation, and utility integrations
+- Secure JWT auth with HTTP-only cookies
 
-### Backend
-- **Framework**: Express.js (Node.js)
-
----
-
-## 2. Folder Structure
-
-```text
-AURA/
-├── frontend/
-│   ├── public/
-│   ├── src/
-│   │   ├── assets/          # SVG logo/favicons
-│   │   ├── components/      # GlassCard, VoiceOrb, VoiceControls, ChatInput, etc.
-│   │   ├── pages/           # Landing, Dashboard, Assistant, Placeholder
-│   │   ├── hooks/
-│   │   ├── services/
-│   │   ├── context/
-│   │   ├── utils/
-│   │   ├── App.jsx          # Routing & Layout frame
-│   │   ├── main.jsx         # App bootstrap entry point
-│   │   └── index.css        # Tailwind config, glass classes & orb keyframes
-│   ├── package.json
-│   └── .env.example
-│
-├── backend/
-│   ├── config/
-│   ├── controllers/
-│   ├── middleware/
-│   ├── models/
-│   ├── routes/
-│   ├── services/
-│   ├── utils/
-│   ├── server.js            # Express application code
-│   ├── package.json
-│   └── .env.example
-│
-└── README.md
-```
-
----
-
-## 3. Installation & Getting Started
-
-### Prerequisites
-- Node.js (v18+ recommended)
-- npm or yarn
-
-### Step 1: Install Dependencies
-
-#### Backend Setup:
-1. Navigate to the backend folder:
-   ```bash
-   cd backend
-   ```
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-#### Frontend Setup:
-1. Navigate to the frontend folder:
-   ```bash
-   cd frontend
-   ```
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-
----
-
-## 4. Running the Application
-
-### Backend
-From the `backend` folder, run the Express server:
-```bash
-npm run dev
-```
-The server will run on `http://localhost:5000` by default. You can verify that the health check works by visiting `http://localhost:5000/api/health`.
+## Technology stack
 
 ### Frontend
-From the `frontend` folder, start the Vite development server:
+- React 19
+- Vite
+- React Router
+- Axios
+- Framer Motion
+- Lucide icons
+- Tailwind CSS styling
+
+### Backend
+- Node.js
+- Express.js
+- MongoDB with Mongoose
+- JWT authentication
+- Helmet, CORS, rate limiting
+- Gemini AI integration
+
+## Architecture
+
+- Frontend deploys separately from backend on Vercel or another static hosting provider.
+- Backend runs as a Node.js service on Render or a comparable provider.
+- MongoDB Atlas stores user and app data.
+- The frontend uses a Vite API base environment variable; the backend reads environment variables server-side.
+- All sensitive keys remain in backend environment configuration and are never exposed to the browser bundle.
+
+## Prerequisites
+
+- Node.js 18+
+- npm
+- MongoDB Atlas account or a local MongoDB instance
+- Vercel account for frontend deployment
+- Render or another Node.js hosting provider for backend deployment
+- AI and utility provider API keys where needed
+
+## Local development
+
+### 1) Install dependencies
+
+Backend:
 ```bash
+cd backend
+npm install
+```
+
+Frontend:
+```bash
+cd frontend
+npm install
+```
+
+### 2) Configure environment variables
+
+Copy the example files and fill in the required values:
+
+```bash
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
+```
+
+Use placeholders only; never commit actual secrets.
+
+### 3) Start backend
+
+```bash
+cd backend
 npm run dev
 ```
-The client dashboard will load on `http://localhost:5173`.
 
-## Phase 4 configuration
+The app defaults to port 5002 in local development to avoid shared-port conflicts with other local services.
 
-Copy `backend/.env.example` to `backend/.env` and set `MONGO_URI`, `JWT_SECRET`, and `AI_API_KEY`. `AI_API_URL` is an OpenAI-compatible chat-completions endpoint and defaults to OpenAI when omitted; `AI_MODEL` selects the provider model. These values stay server-side and are never sent to React.
+### 4) Start frontend
 
-Phase 4 adds authenticated `POST /api/ai/chat` plus conversation persistence under `/api/conversations` and memory CRUD under `/api/memory`. Memory commands such as `Remember that I prefer concise answers`, `Forget that I prefer concise answers`, and `What do you remember about me?` are handled by the backend before a normal chat is sent to the provider.
-
-Run backend checks with `npm test` from `backend`, and build/lint the frontend with `npm run build` and `npm run lint` from `frontend`.
-
-## 🚀 Phase 5 — Productivity Features
-
-Phase 5 enhances **AURA** with personal productivity capabilities, allowing users to manage tasks, notes, reminders, and conversations using natural-language and voice commands.
-
-### ✨ Features
-
-* 📝 **Notes** — Create and manage notes using natural language.
-* ✅ **Tasks** — Create and manage daily productivity tasks.
-* ⏰ **Reminders** — Set reminders with date and time information.
-* 💬 **Conversations** — View previous assistant conversations.
-* 🧠 **Intent Detection** — Understands task, note, and reminder commands.
-* 🕐 **Timezone Support** — Improved date and time processing.
-* 🎙️ **Voice Integration** — Productivity features work with AURA's voice interface.
-
-### 🧪 Testing
-
-Phase 5 includes automated tests for productivity intent detection and detail parsing.
-
-```text
-Tests: 4
-Passed: 4
-Failed: 0
-Status: ✅ All Tests Passed
+```bash
+cd frontend
+npm run dev
 ```
 
-### 🛠️ Key Technologies
+The frontend should use the configured `VITE_API_BASE_URL` and default to `http://localhost:5002/api` for local development.
 
-**Frontend:** React.js
-**Backend:** Node.js + Express.js
-**Database:** MongoDB
-**AI:** Gemini / AI Provider
-**Testing:** Node.js Test Runner
+## Environment variables
 
-### ✅ Phase 5 Status
+### Backend (`backend/.env`)
 
-**Completed and successfully pushed to GitHub.** 🚀
+Required or commonly used variables include:
 
-Commit: `3b5df0b`
-
-## 🚀 Phase 6 — Smart Weather & Utility Features
-
-Phase 6 enhances **AURA** with smart utility capabilities, allowing users to get real-time weather information and interact with weather-related features using natural-language and voice commands.
-
-### ✨ Features
-
-* 🌤️ **Weather Information** — Get current weather conditions for a requested location.
-* 🌡️ **Temperature Details** — Provides current temperature information along with weather conditions.
-* 💧 **Weather Details** — Displays useful information such as humidity and other available weather parameters.
-* 📍 **Location-Based Weather** — Fetch weather information for different cities and locations.
-* 🗣️ **Natural Language Support** — Understands weather-related user queries naturally.
-* 🎙️ **Voice Integration** — Weather requests can be made through AURA's voice interface.
-* 🔄 **Real-Time Data** — Retrieves updated weather information through a weather API.
-* ⚠️ **Error Handling** — Handles invalid locations, missing information, and API-related errors gracefully.
-
-### 🧪 Testing
-
-Phase 6 includes testing for weather-related queries, location handling, API responses, and error cases.
-
-```text
-Tests: Completed
-Passed: All Implemented Tests
-Failed: 0
-Status: ✅ All Tests Passed
+```env
+PORT=5002
+MONGO_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/aura
+JWT_SECRET=replace-with-a-long-random-secret
+CLIENT_URL=http://localhost:5173
+GEMINI_API_KEY=your-gemini-key
+GEMINI_MODEL=gemini-3.5-flash-lite
+WEATHER_API_KEY=
+DEFAULT_WEATHER_CITY=Hyderabad
+SEARCH_API_KEY=
+SEARCH_API_URL=
+TRANSLATION_API_URL=
+TRANSLATION_API_KEY=
+APP_TIMEZONE=Asia/Kolkata
 ```
 
-### 🛠️ Key Technologies
+Notes:
+- `PORT` is the Express listening port for backend hosting.
+- `MONGO_URI` must point to a MongoDB Atlas cluster or a reachable local MongoDB instance.
+- `JWT_SECRET` must be set in production and should never be exposed to the frontend.
+- `CLIENT_URL` is used for CORS allowlist configuration and should be set to the deployed frontend domain in production.
+- Gemini and utility provider credentials remain backend-only.
 
-**Frontend:** React.js
-**Backend:** Node.js + Express.js
-**Database:** MongoDB
-**AI:** Gemini / AI Provider
-**Weather API:** Weather API Integration
-**Testing:** Node.js Test Runner
+### Frontend (`frontend/.env`)
 
-### 🔄 Example Queries
-
-Users can interact with AURA using natural language:
-
-```text
-"What is the weather in Hyderabad?"
-"Tell me today's weather in Delhi."
-"What's the temperature in Mumbai?"
-"How is the weather in Patna?"
+```env
+VITE_API_BASE_URL=http://localhost:5002/api
 ```
 
-AURA processes the request, identifies the location, retrieves the latest weather information, and presents the result to the user.
+For production deployments, set the same variable to the deployed backend URL, for example:
+```env
+VITE_API_BASE_URL=https://your-backend-url.onrender.com/api
+```
 
-### ✅ Phase 6 Status
+## Production readiness summary
 
-**Completed and successfully implemented.** 🌤️🚀
+### Frontend production setup
 
-## Latest Updates — AURA
+- The frontend is Vite-based and builds successfully with `npm run build`.
+- API configuration now uses `VITE_API_BASE_URL` with a local fallback for development.
+- SPA fallback is included via `frontend/vercel.json` to support direct navigation on routes such as `/dashboard`, `/settings`, and `/utilities`.
+- Hardcoded localhost API URLs are not used in runtime app code.
 
-### Phase 6: Smart Utilities & Improvements
+### Backend production setup
 
-* Added **Unit Converter** service for common unit conversions.
-* Improved **Weather** service and global location support.
-* Enhanced **AI intent detection and action routing**.
-* Improved **authentication controller and authentication tests**.
-* Added and updated **Phase 6 test cases**.
-* Improved **voice recognition** and speech recognition testing.
-* Updated backend server and AI controller integration.
+- The backend uses `process.env.PORT` and defaults to `5001` only for local development.
+- CORS allows configured frontend origins while keeping development localhost access available.
+- Cookies are still used for auth, so credentials remain enabled for same-site or cross-site setups when the deployment type supports them.
+- The middleware now fails safely when `JWT_SECRET` is missing instead of silently using a weak fallback value.
+- The public `/api/health` endpoint remains available without authentication.
 
-### Testing
+## Deployment instructions
 
-Added/updated automated tests for:
+### A. MongoDB Atlas configuration
 
-* Authentication
-* Phase 6 utilities
-* Speech recognition
+1. Create or locate the MongoDB Atlas cluster used by AURA.
+2. Add the backend host IP address to the Atlas network access list.
+3. Create a MongoDB user with the minimum required privileges for the application database.
+4. Copy the connection string into `MONGO_URI` in the backend environment.
+5. Verify that the app can connect to the cluster before publishing the frontend.
 
-AURA continues to evolve toward a more intelligent, reliable, and feature-rich personal AI assistant.
+Important: do not hardcode credentials in source files or docs. Keep them in the host environment only.
 
+### B. Backend deployment (Render or a similar Node.js host)
 
+1. Create a new Node.js web service.
+2. Point it to the backend project folder.
+3. Set the runtime environment variables listed above.
+4. Configure the build/start command to run the backend:
+   ```bash
+   npm install
+   npm start
+   ```
+5. Set the backend port to the value provided by the host via `PORT`.
+6. Check the application health route:
+   ```text
+   https://your-backend-url.example/api/health
+   ```
+
+### C. Frontend deployment (Vercel)
+
+1. Import the frontend project into Vercel.
+2. Set the build command to:
+   ```bash
+   npm install
+   npm run build
+   ```
+3. Set the output directory to `dist`.
+4. Add the environment variable:
+   ```env
+   VITE_API_BASE_URL=https://your-backend-url.example/api
+   ```
+5. Deploy and confirm route navigation works.
+
+### D. Production environment variables
+
+Set the following in the backend host:
+- `PORT`
+- `MONGO_URI`
+- `JWT_SECRET`
+- `CLIENT_URL`
+- `GEMINI_API_KEY`
+- `GEMINI_MODEL`
+- optional utility keys as needed
+
+Set the following in the frontend host:
+- `VITE_API_BASE_URL`
+
+### E. CORS and authentication cookie configuration
+
+For same-origin or same-site deployment, standard cookie settings are typically sufficient. If the frontend and backend are on different domains, confirm cookie behavior with browser requirements (typically `SameSite=None; Secure` for cross-site cookies). The app should not be changed to a different auth model unless this is necessary and clearly justified.
+
+### F. Post-deployment smoke tests
+
+1. Confirm `/api/health` responds successfully.
+2. Try registration and login with a real user.
+3. Confirm the auth cookie is set and the app restores the user session after refresh.
+4. Open the dashboard and a protected route to verify navigation works.
+5. Confirm analytics/profile APIs work for authenticated users only.
+6. Validate AI and utility features only where the required providers are configured.
+
+## Security notes
+
+- Keep `.env` and other secret files out of Git.
+- Do not commit real keys or credentials.
+- Never expose JWT secrets in client code or frontend bundles.
+- Use environment variables for all provider keys.
+- Keep CORS limited to the deployed frontend origin.
+- Use HTTPS in production and secure cookies when cross-site auth is required.
+- Fail safely when services are not configured.
+
+## Testing
+
+The repository supports the following checks:
+
+```bash
+cd backend
+npm test
+```
+
+```bash
+cd frontend
+npm run build
+```
+
+This project was also checked for frontend build health and backend auth service behavior.
+
+## Known limitations
+
+- Live production deployment has not been performed in this environment.
+- Some external AI and utility providers require API keys that are not present in the local environment.
+- MongoDB Atlas connectivity must be confirmed in the actual hosting environment.
+- Browser speech features may require HTTPS or localhost to work reliably.
+
+## Deployment checklist
+
+- [x] Frontend build validated locally
+- [x] Backend auth safety checks validated
+- [x] Vite API configuration updated to use environment variables
+- [x] SPA fallback added for Vercel
+- [x] Secure JWT secret handling tightened
+- [x] Public health endpoint kept available
+- [ ] Production MongoDB Atlas credentials configured in host environment
+- [ ] Deployed backend service URL configured in Vercel
+- [ ] Live deployment performed by the user after explicit authorization
+
+## Final status
+
+This repository is prepared for production deployment work, but it has not been published yet. The codebase remains preserved and operational, while the real deployment and live provider configuration steps are still required outside this environment.
 

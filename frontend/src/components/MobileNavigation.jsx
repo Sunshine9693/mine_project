@@ -1,14 +1,14 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, Mic, History, FileText, User } from 'lucide-react';
+import { Home, Mic, History, FileText, Sparkles } from 'lucide-react';
 
 const MobileNavigation = () => {
   const tabs = [
     { name: 'Home', path: '/dashboard', icon: Home },
     { name: 'Assistant', path: '/assistant', icon: Mic },
+    { name: 'Utilities', path: '/utilities', icon: Sparkles },
     { name: 'History', path: '/conversations', icon: History },
     { name: 'Notes', path: '/notes', icon: FileText },
-    { name: 'Profile', path: '/settings', icon: User },
   ];
 
   return (

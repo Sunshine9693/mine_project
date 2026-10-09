@@ -3,6 +3,13 @@ const jwt = require('jsonwebtoken');
 const protect = async (req, res, next) => {
   let token;
 
+  const jwtSecret = process.env.JWT_SECRET;
+
+  if (!jwtSecret) {
+    console.error('[AURA Auth Middleware Error]: JWT_SECRET is not configured.');
+    return res.status(500).json({ message: 'Authentication is not configured on this server.' });
+  }
+
   // 1. Check for token in cookies (preferred)
   if (req.cookies && req.cookies.token) {
     token = req.cookies.token;
@@ -19,10 +26,7 @@ const protect = async (req, res, next) => {
 
   try {
     // Verify token
-    const decoded = jwt.verify(
-      token, 
-      process.env.JWT_SECRET || 'aura-default-development-secret-key-987654'
-    );
+    const decoded = jwt.verify(token, jwtSecret);
 
     // Add user payload to request
     req.user = decoded;

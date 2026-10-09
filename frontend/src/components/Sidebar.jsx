@@ -10,7 +10,14 @@ import {
   Search, 
   BarChart2, 
   Settings,
-  LogOut
+  LogOut,
+  Calculator,
+  CircleDollarSign,
+  Ruler,
+  CloudSun,
+  Clock3,
+  Languages,
+  Sparkles
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -28,6 +35,16 @@ const Sidebar = () => {
     { name: 'Search', path: '/search', icon: Search },
     { name: 'Analytics', path: '/analytics', icon: BarChart2 },
     { name: 'Settings', path: '/settings', icon: Settings },
+  ];
+
+  const utilityItems = [
+    { name: 'Calculator', path: '/utilities?tool=calculator', icon: Calculator },
+    { name: 'Currency Converter', path: '/utilities?tool=currency', icon: CircleDollarSign },
+    { name: 'Unit Converter', path: '/utilities?tool=unit', icon: Ruler },
+    { name: 'Weather', path: '/utilities?tool=weather', icon: CloudSun },
+    { name: 'World Time', path: '/utilities?tool=time', icon: Clock3 },
+    { name: 'Translator', path: '/utilities?tool=translator', icon: Languages },
+    { name: 'Web Search', path: '/utilities?tool=search', icon: Search },
   ];
 
   const handleLogout = async () => {
@@ -61,6 +78,30 @@ const Sidebar = () => {
             <span>{item.name}</span>
           </NavLink>
         ))}
+
+        <div className="pt-4">
+          <div className="mb-2 flex items-center gap-2 px-3">
+            <Sparkles className="h-3.5 w-3.5 text-aura-primary-purple" />
+            <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-aura-text-muted">Utilities</span>
+          </div>
+
+          {utilityItems.map((item) => (
+            <NavLink
+              key={item.name}
+              to={item.path}
+              className={({ isActive }) =>
+                `flex items-center gap-3.5 px-4.5 py-2.5 rounded-2xl text-sm font-medium transition-all duration-300 ${
+                  isActive
+                    ? 'bg-aura-soft-purple/20 text-aura-deep-purple shadow-sm border-l-4 border-aura-primary-purple'
+                    : 'text-aura-text-secondary hover:text-aura-primary-purple hover:bg-white/40'
+                }`
+              }
+            >
+              <item.icon className="w-[17px] h-[17px]" />
+              <span>{item.name}</span>
+            </NavLink>
+          ))}
+        </div>
       </nav>
 
       {/* Footer Info */}

@@ -260,6 +260,7 @@ const getWeather = async (cityOrLocation, userLocation = null) => {
     const value = {
       city: weatherLocation.name,
       country: weatherLocation.country,
+      location: weatherLocation.name,
       latitude,
       longitude,
 
@@ -274,7 +275,7 @@ const getWeather = async (cityOrLocation, userLocation = null) => {
       ),
 
       humidity: current.relative_humidity_2m,
-
+      wind: current.wind_speed_10m,
       windSpeed: Math.round(
         current.wind_speed_10m
       ),

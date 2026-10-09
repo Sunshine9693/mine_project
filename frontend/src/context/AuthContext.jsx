@@ -19,9 +19,10 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await api.get('/auth/me');
       if (response.data && response.data.success) {
-        setUser(response.data.user || response.data.data);
+        const nextUser = response.data.user || response.data.data;
+        setUser(nextUser);
         setIsAuthenticated(true);
-        return response.data.user || response.data.data;
+        return nextUser;
       }
       setUser(null);
       setIsAuthenticated(false);
@@ -45,7 +46,9 @@ export const AuthProvider = ({ children }) => {
         setIsAuthenticated(true);
         return { success: true };
       }
-      return { success: false, error: 'Registration failed. Please try again.' };
+      const message = response.data?.message || 'Login failed. Please try again.';
+      setError(message);
+      return { success: false, error: message };
     } catch (err) {
       const message = err.response?.data?.message || 'Login failed. Please check credentials.';
       setError(message);
@@ -63,7 +66,9 @@ export const AuthProvider = ({ children }) => {
         setIsAuthenticated(true);
         return { success: true };
       }
-      return { success: false, error: 'Login failed. Please check credentials.' };
+      const message = response.data?.message || 'Registration failed. Please try again.';
+      setError(message);
+      return { success: false, error: message };
     } catch (err) {
       const message = err.response?.data?.message || 'Registration failed. Try again.';
       setError(message);
@@ -86,6 +91,7 @@ export const AuthProvider = ({ children }) => {
   return (
     <AuthContext.Provider value={{
       user,
+      setUser,
       isAuthenticated,
       loading,
       error,
@@ -94,8 +100,7 @@ export const AuthProvider = ({ children }) => {
       logout,
       refreshUser,
       setError
-    }}>
-      {children}
+    }}>      {children}
     </AuthContext.Provider>
   );
 };

@@ -13,7 +13,10 @@ const getSearchResults = async (query) => {
       const url = item.url || item.link;
       let safeUrl;
       try { safeUrl = new URL(url).protocol === 'https:' ? url : null; } catch { safeUrl = null; }
-      return { title: String(item.title || '').slice(0, 200), description: String(item.description || item.snippet || '').slice(0, 500), source: String(item.source || (safeUrl ? new URL(safeUrl).hostname : '')).slice(0, 120), url: safeUrl };
+      const title = String(item.title || '').slice(0, 200);
+      const snippet = String(item.snippet || item.description || '').slice(0, 500);
+      const source = String(item.source || (safeUrl ? new URL(safeUrl).hostname : '')).slice(0, 120);
+      return { title, url: safeUrl, snippet, description: snippet, source, };
     }).filter((item) => item.title && item.url);
   } catch (error) {
     if (error.code === 'SEARCH_QUERY_REQUIRED' || error.code === 'SEARCH_NOT_CONFIGURED') throw error;

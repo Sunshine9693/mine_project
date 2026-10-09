@@ -11,24 +11,73 @@ import {
   Search,
   MessageSquare,
   Music,
-  Plus
+  Plus,
+  Calculator,
+  CircleDollarSign,
+  CloudSun,
+  Ruler
 } from 'lucide-react';
 import ProfileHeader from '../components/ProfileHeader';
+import ProfilePanel from '../components/ProfilePanel';
 import QuickActionCard from '../components/QuickActionCard';
 import ChatInput from '../components/ChatInput';
 import Toast from '../components/Toast';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
+const getTimeOfDayForTimezone = (timezone) => {
+  if (!timezone) return 'Morning';
+
+  try {
+    const hour = Number(
+      new Intl.DateTimeFormat('en-US', {
+        hour: 'numeric',
+        hour12: false,
+        timeZone: timezone,
+      }).format(new Date())
+    );
+
+    if (hour >= 5 && hour < 12) return 'Morning';
+    if (hour >= 12 && hour < 18) return 'Afternoon';
+    return 'Evening';
+  } catch (error) {
+    return 'Morning';
+  }
+};
+
+const isBirthdayToday = (birthday, timezone) => {
+  if (!birthday || !timezone) return false;
+
+  try {
+    const [year, month, day] = birthday.split('-').map((value) => Number(value));
+    if (!year || !month || !day) return false;
+
+    const todayParts = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(new Date());
+
+    const monthPart = todayParts.find((part) => part.type === 'month')?.value;
+    const dayPart = todayParts.find((part) => part.type === 'day')?.value;
+    return Number(monthPart) === month && Number(dayPart) === day;
+  } catch (error) {
+    return false;
+  }
+};
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('All');
+  const [profileOpen, setProfileOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState('info');
   const [conversationId, setConversationId] = useState(null);
   const [summary, setSummary] = useState({ notes: { total: 0, pinned: 0, recent: [] }, tasks: { total: 0, completed: 0, pending: 0, highPriority: 0 }, reminders: { today: 0, upcoming: 0, completed: 0 } });
   const sendingRef = React.useRef(false);
+  const currentTimeOfDay = getTimeOfDayForTimezone(user?.timezone || 'Asia/Kolkata');
+  const birthdayToday = isBirthdayToday(user?.birthday, user?.timezone || 'Asia/Kolkata');
 
   const showToast = (message, type = 'info') => {
     setToastMessage(message);
@@ -40,6 +89,13 @@ const Dashboard = () => {
     { title: 'New Task', description: 'Plan work and goals', icon: CheckSquare, path: '/tasks' },
     { title: 'New Reminder', description: 'Stay on schedule', icon: Bell, path: '/reminders' },
     { title: 'Ask AURA', description: 'Use AI for productivity', icon: Sparkles, path: '/assistant' },
+  ];
+
+  const utilityQuickActions = [
+    { title: 'Calculator', description: 'Quick equations', icon: Calculator, path: '/utilities?tool=calculator' },
+    { title: 'Currency', description: 'Live conversion', icon: CircleDollarSign, path: '/utilities?tool=currency' },
+    { title: 'Weather', description: 'Current conditions', icon: CloudSun, path: '/utilities?tool=weather' },
+    { title: 'Unit Converter', description: 'Measure and convert', icon: Ruler, path: '/utilities?tool=unit' },
   ];
 
   const filterPills = ['All', 'Reminders', 'Music', 'Searches'];
@@ -110,7 +166,15 @@ const Dashboard = () => {
       {/* Top Section */}
       <div className="space-y-6">
         {/* Profile and Greetings */}
-        <ProfileHeader username={user?.name || "Sarah"} timeOfDay="Morning" avatar={user?.avatar} />
+        <ProfileHeader
+          username={user?.name || ''}
+          timeOfDay={currentTimeOfDay}
+          avatar={user?.avatar}
+          isBirthday={birthdayToday}
+          reducedMotion={Boolean(user?.preferences?.reducedMotion)}
+          accentColor={user?.preferences?.accentColor || '#9B5DE5'}
+          onProfileClick={() => setProfileOpen(true)}
+        />
 
         <div className="grid grid-cols-2 gap-4 md:gap-5 pt-2">
           {quickActions.map((action, index) => (
@@ -140,6 +204,34 @@ const Dashboard = () => {
             <div className="flex items-center justify-between mb-2"><span className="text-xs text-aura-text-muted">Reminders</span><Bell className="w-4 h-4 text-aura-primary-purple" /></div>
             <div className="text-2xl font-semibold text-aura-text-primary">{summary.reminders.today}</div>
             <div className="text-[11px] text-aura-text-secondary mt-1">{summary.reminders.upcoming} upcoming</div>
+          </div>
+        </div>
+
+        <div className="space-y-4 pt-2">
+          <div className="flex justify-between items-center px-1">
+            <h3 className="font-semibold text-aura-text-primary text-base md:text-lg">
+              Smart Utilities
+            </h3>
+            <button
+              onClick={() => navigate('/utilities')}
+              className="text-xs font-semibold text-aura-primary-purple hover:text-aura-deep-purple transition-colors flex items-center gap-0.5"
+            >
+              <span>View All Utilities</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            {utilityQuickActions.map((action, index) => (
+              <QuickActionCard
+                key={action.title}
+                title={action.title}
+                description={action.description}
+                icon={action.icon}
+                delay={index * 0.06}
+                onClick={() => handleActionClick(action)}
+              />
+            ))}
           </div>
         </div>
 
@@ -223,6 +315,12 @@ const Dashboard = () => {
           message={toastMessage} 
           type={toastType} 
           onClose={() => setToastMessage('')} 
+        />
+      )}
+      {profileOpen && (
+        <ProfilePanel
+          onClose={() => setProfileOpen(false)}
+          reducedMotion={Boolean(user?.preferences?.reducedMotion)}
         />
       )}
     </div>

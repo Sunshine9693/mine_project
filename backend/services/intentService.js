@@ -109,12 +109,12 @@ const detectIntent = (message = '') => {
   if (/\b(weather|temperature|forecast|rain)\b/i.test(lower) && !/my\s+weather/i.test(lower)) return 'WEATHER';
   if (/\b(?:search the web|latest .* news|what happened.*news|find information about|look up .*today|technology news)\b|^(?:search|find|look up)\b/i.test(lower)) return 'WEB_SEARCH';
   if (/^(calculate|compute)\b|\b(\d+(?:\.\d+)?\s*(?:\+|-|\*|\/|%|times|multiplied|divided|percent|power))\b/i.test(lower)) return 'CALCULATE';
-  if (/\b(?:convert|how many|how much)\b.*\b(?:kilometer|kilometre|mile|meter|metre|centimeter|centimetre|gram|kilogram|fahrenheit|celsius|kelvin|liter|gallon|second|minute|hour|day|foot|inch|pound|ounce)\b/i.test(lower)) return 'UNIT_CONVERSION';
-  if (/\b(?:what time is it|what time is it in|what is the time|time in|current time in|what is the date|what day is today|date in|today's date|what's the date)\b/i.test(lower)) return 'TIME_DATE';
-  if (/\b(?:convert|exchange|worth)\b.*\b(?:usd|inr|eur|gbp|jpy|cad|aud|sgd|aed|pkr|dollar|rupee|euro|pound|yen)\b/i.test(lower)) return 'CURRENCY_CONVERSION';
+  if (/\b(?:convert|how many|how much)\b.*\b(?:kilometers?|kilometres?|miles?|meters?|metres?|centimeters?|centimetres?|grams?|kilograms?|fahrenheit|celsius|kelvin|liters?|gallons?|seconds?|minutes?|hours?|days?|feet|foot|inches?|pounds?|ounces?)\b/i.test(lower)) return 'UNIT_CONVERSION';
+  if (/\b(today'?s date|what date|what day is today|next\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday))\b/i.test(lower)) return 'DATE';
+  if (/\b(?:what time is it|what time is it in|what is the time|time in|current time in|date in)\b/i.test(lower)) return 'TIME_DATE';
+  if (/\b(?:convert|exchange|worth)\b.*\b(?:usd|us\s*dollar|dollars?|inr|rupees?|eur|euros?|gbp|pounds?|jpy|yen|cad|aud|sgd|aed|pkr)\b/i.test(lower)) return 'CURRENCY_CONVERSION';
   if (/\bwhere am i\b|\bcurrent location\b|\btimezone of\b|\bnear me\b|\bdistance between\b/i.test(lower)) return 'LOCATION';
   if (/\bwhat time is it\b|\btime\s+(?:is it|in|at)\b/i.test(lower)) return 'TIME_DATE';
-  if (/\b(today'?s date|what date|what day is today|next\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday))\b/i.test(lower)) return 'DATE';
   if (/\b(?:translate|how do i say)\b/i.test(lower)) return 'TRANSLATE';
 
   if (/\bnotes?\b.*\b(search|show|list|get|find)\b|show my notes|what notes|notes about/i.test(lower)) {

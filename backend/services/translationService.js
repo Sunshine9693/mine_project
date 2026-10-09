@@ -19,7 +19,12 @@ const translate = async (text, targetLanguage) => {
       translated = response.data?.responseData?.translatedText;
     }
     if (!translated) throw new Error('Empty translation');
-    return { text: sourceText, targetLanguage: target, translatedText: translated };
+    return {
+      originalText: sourceText,
+      text: sourceText,
+      targetLanguage: target,
+      translatedText: translated,
+    };
   } catch (error) {
     if (error.code === 'TRANSLATE_TEXT_REQUIRED' || error.code === 'TRANSLATE_LANGUAGE_INVALID') throw error;
     throw Object.assign(new Error('Translation is temporarily unavailable. Please try again.'), { status: 502, code: 'TRANSLATE_UNAVAILABLE' });

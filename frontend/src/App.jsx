@@ -10,10 +10,13 @@ import Assistant from './pages/Assistant';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Placeholder from './pages/Placeholder';
+import SettingsPage from './pages/SettingsPage';
+import AnalyticsPage from './pages/AnalyticsPage';
 import Conversations from './pages/Conversations';
 import NotesPage from './pages/NotesPage';
 import TasksPage from './pages/TasksPage';
 import RemindersPage from './pages/RemindersPage';
+import UtilitiesPage from './pages/UtilitiesPage';
 
 // Layout wrapper to conditional render Sidebar and Mobile Nav
 const LayoutWrapper = ({ children }) => {
@@ -68,9 +71,10 @@ const AppRoutes = () => {
       <Route path="/reminders" element={<ProtectedRoute><RemindersPage /></ProtectedRoute>} />
       <Route path="/notes" element={<ProtectedRoute><NotesPage /></ProtectedRoute>} />
       <Route path="/tasks" element={<ProtectedRoute><TasksPage /></ProtectedRoute>} />
+      <Route path="/utilities" element={<ProtectedRoute><UtilitiesPage /></ProtectedRoute>} />
       <Route path="/search" element={<ProtectedRoute><Placeholder /></ProtectedRoute>} />
-      <Route path="/analytics" element={<ProtectedRoute><Placeholder /></ProtectedRoute>} />
-      <Route path="/settings" element={<ProtectedRoute><Placeholder /></ProtectedRoute>} />
+      <Route path="/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
+      <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
 
       {/* Catch all / Redirect */}
       <Route path="*" element={<Navigate to={isAuthenticated ? '/dashboard' : '/login'} replace />} />
