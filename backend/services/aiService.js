@@ -190,7 +190,7 @@ const generateAIResponse = async ({
     process.env.GEMINI_MODEL || DEFAULT_MODEL;
 
   const providerUrl =
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+  `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
   const relevantMemories =
     selectRelevantMemories(memories, message);
