@@ -18,6 +18,7 @@ const isDatabaseReady = () => {
 // GENERATE JWT + SET COOKIE
 // ============================================================
 
+
 const generateTokenAndSetCookie = (res, userId) => {
   const jwtSecret = process.env.JWT_SECRET;
 
@@ -33,13 +34,13 @@ const generateTokenAndSetCookie = (res, userId) => {
     }
   );
 
+  const isProduction = process.env.NODE_ENV === 'production';
+
   const cookieOptions = {
     httpOnly: true,
-
-    secure: process.env.NODE_ENV === 'production',
-
-    sameSite: 'lax',
-
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
+    path: '/',
     maxAge: 7 * 24 * 60 * 60 * 1000,
   };
 
@@ -462,37 +463,28 @@ exports.me = async (req, res) => {
 // Public / Protected
 // ============================================================
 
+
 exports.logout = async (req, res) => {
   try {
+    const isProduction = process.env.NODE_ENV === 'production';
 
-    res.cookie('token', '', {
+    res.clearCookie('token', {
       httpOnly: true,
-
-      expires: new Date(0),
-
-      secure:
-        process.env.NODE_ENV === 'production',
-
-      sameSite: 'lax',
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+      path: '/',
     });
-
 
     return res.status(200).json({
       success: true,
       message: 'Logged out successfully',
     });
-
   } catch (error) {
-
-    console.error(
-      '[AURA Logout Error]:',
-      error
-    );
+    console.error('[AURA Logout Error]:', error);
 
     return res.status(500).json({
       success: false,
-      message:
-        'Server error during logout',
+      message: 'Server error during logout',
     });
   }
 };
