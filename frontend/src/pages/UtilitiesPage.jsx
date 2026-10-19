@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   Calculator,
@@ -64,6 +64,7 @@ const utilityDefinitions = [
 
 const currencyOptions = ['USD', 'INR', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD', 'SGD', 'AED', 'PKR'];
 const languageOptions = [
+  { label: 'English', value: 'en' },
   { label: 'Hindi', value: 'hi' },
   { label: 'Spanish', value: 'es' },
   { label: 'French', value: 'fr' },
@@ -139,10 +140,14 @@ const UtilitiesPage = () => {
   const [timeCity, setTimeCity] = useState('London');
   const [timeResult, setTimeResult] = useState(null);
   const [translationText, setTranslationText] = useState('Hello');
+  const [translationSource, setTranslationSource] = useState('auto');
   const [translationTarget, setTranslationTarget] = useState('hi');
   const [translationResult, setTranslationResult] = useState(null);
+  const translationRequestIdRef = useRef(0);
+  const translationInFlightRef = useRef(false);
   const [searchQuery, setSearchQuery] = useState('latest AI news');
   const [searchResult, setSearchResult] = useState(null);
+  const searchRequestIdRef = useRef(0);
 
   const [statuses, setStatuses] = useState({
     calculator: { loading: false, error: '' },
@@ -285,42 +290,69 @@ const UtilitiesPage = () => {
   };
 
   const handleTranslation = async () => {
-    const text = String(translationText || '').trim();
-    if (!text) {
+    if (translationInFlightRef.current) return;
+    const text = String(translationText || '');
+    if (!text.trim()) {
       updateStatus('translator', { error: 'Please enter text to translate.' });
       return;
     }
 
+    const requestId = ++translationRequestIdRef.current;
+    translationInFlightRef.current = true;
     updateStatus('translator', { loading: true, error: '' });
 
     try {
       const { data } = await api.post('/utilities/translate', {
         text,
+        sourceLanguage: translationSource,
         targetLanguage: translationTarget,
       });
 
-      setTranslationResult(data);
-      updateStatus('translator', { loading: false, error: '' });
+      if (requestId === translationRequestIdRef.current) {
+        if (typeof data?.translatedText !== 'string' || !data.translatedText.trim()) {
+          throw new Error('The translation service returned an invalid response.');
+        }
+        setTranslationResult(data);
+      }
     } catch (error) {
-      updateStatus('translator', { loading: false, error: makeErrorMessage(error) });
+      if (requestId === translationRequestIdRef.current) {
+        const message = error?.isAxiosError && !error.response
+          ? 'Could not reach the translation service. Check your connection and try again.'
+          : makeErrorMessage(error);
+        updateStatus('translator', { error: message });
+      }
+    } finally {
+      translationInFlightRef.current = false;
+      updateStatus('translator', { loading: false });
     }
   };
 
   const handleSearch = async () => {
     const query = String(searchQuery || '').trim();
     if (!query) {
+      searchRequestIdRef.current += 1;
+      setSearchResult(null);
       updateStatus('search', { error: 'Please enter a search query.' });
       return;
     }
 
+    const requestId = ++searchRequestIdRef.current;
+    setSearchResult(null);
     updateStatus('search', { loading: true, error: '' });
 
     try {
       const { data } = await api.get('/utilities/search', { params: { q: query } });
-      setSearchResult(data.results || []);
-      updateStatus('search', { loading: false, error: '' });
+      if (!Array.isArray(data?.results)) {
+        throw new Error('The search service returned an invalid response.');
+      }
+      if (requestId === searchRequestIdRef.current) {
+        setSearchResult(data.results);
+        updateStatus('search', { loading: false, error: '' });
+      }
     } catch (error) {
-      updateStatus('search', { loading: false, error: makeErrorMessage(error) });
+      if (requestId === searchRequestIdRef.current) {
+        updateStatus('search', { loading: false, error: makeErrorMessage(error) });
+      }
     }
   };
 
@@ -709,21 +741,50 @@ const UtilitiesPage = () => {
 
         {activeTool === 'translator' && (
           <div className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-[1fr_220px_auto] md:items-end">
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_180px_180px_auto] md:items-end">
               <div className="space-y-2">
                 <label className="text-xs font-medium uppercase tracking-[0.16em] text-aura-text-muted">Text</label>
-                <input
+                <textarea
+                  rows={3}
                   value={translationText}
-                  onChange={(event) => setTranslationText(event.target.value)}
+                  onChange={(event) => {
+                    translationRequestIdRef.current += 1;
+                    setTranslationText(event.target.value);
+                    setTranslationResult(null);
+                    updateStatus('translator', { error: '' });
+                  }}
                   placeholder="Hello"
                   className="glass-input w-full rounded-2xl border border-white/70 px-4 py-3 text-sm text-aura-text-primary outline-none transition focus:border-violet-300"
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-medium uppercase tracking-[0.16em] text-aura-text-muted">Target Language</label>
+                <label className="text-xs font-medium uppercase tracking-[0.16em] text-aura-text-muted">From</label>
+                <select
+                  value={translationSource}
+                  onChange={(event) => {
+                    translationRequestIdRef.current += 1;
+                    setTranslationSource(event.target.value);
+                    setTranslationResult(null);
+                    updateStatus('translator', { error: '' });
+                  }}
+                  className="glass-input w-full rounded-2xl border border-white/70 px-4 py-3 text-sm text-aura-text-primary outline-none transition focus:border-violet-300"
+                >
+                  <option value="auto">Auto detect</option>
+                  {languageOptions.map((language) => (
+                    <option key={language.value} value={language.value}>{language.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-medium uppercase tracking-[0.16em] text-aura-text-muted">To</label>
                 <select
                   value={translationTarget}
-                  onChange={(event) => setTranslationTarget(event.target.value)}
+                  onChange={(event) => {
+                    translationRequestIdRef.current += 1;
+                    setTranslationTarget(event.target.value);
+                    setTranslationResult(null);
+                    updateStatus('translator', { error: '' });
+                  }}
                   className="glass-input w-full rounded-2xl border border-white/70 px-4 py-3 text-sm text-aura-text-primary outline-none transition focus:border-violet-300"
                 >
                   {languageOptions.map((language) => (
@@ -733,7 +794,8 @@ const UtilitiesPage = () => {
               </div>
               <button
                 onClick={handleTranslation}
-                className="btn-gradient-purple rounded-2xl px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:opacity-95"
+                disabled={statuses.translator.loading}
+                className="btn-gradient-purple rounded-2xl px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
               >
                 Translate
               </button>
@@ -744,9 +806,9 @@ const UtilitiesPage = () => {
             {translationResult ? (
               <div className="rounded-[24px] border border-violet-200 bg-violet-50/60 p-5">
                 <div className="text-xs font-medium uppercase tracking-[0.18em] text-aura-text-muted">Original</div>
-                <div className="mt-2 text-lg font-medium text-aura-text-primary">{translationResult.originalText}</div>
+                <div className="mt-2 whitespace-pre-wrap break-words text-lg font-medium text-aura-text-primary">{translationResult.originalText}</div>
                 <div className="mt-5 text-xs font-medium uppercase tracking-[0.18em] text-aura-text-muted">Translated</div>
-                <div className="mt-2 text-2xl font-bold text-aura-deep-purple">{translationResult.translatedText}</div>
+                <div className="mt-2 whitespace-pre-wrap break-words text-2xl font-bold text-aura-deep-purple">{translationResult.translatedText}</div>
               </div>
             ) : (
               <div className="rounded-[22px] border border-dashed border-white/60 bg-white/20 p-5 text-sm text-aura-text-secondary">
@@ -763,7 +825,12 @@ const UtilitiesPage = () => {
                 <label className="text-xs font-medium uppercase tracking-[0.16em] text-aura-text-muted">Search the web</label>
                 <input
                   value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
+                  onChange={(event) => {
+                    searchRequestIdRef.current += 1;
+                    setSearchQuery(event.target.value);
+                    setSearchResult(null);
+                    updateStatus('search', { loading: false, error: '' });
+                  }}
                   placeholder="latest AI news"
                   className="glass-input w-full rounded-2xl border border-white/70 px-4 py-3 text-sm text-aura-text-primary outline-none transition focus:border-violet-300"
                 />

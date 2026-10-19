@@ -1,5 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const axios = require('axios');
 const { detectIntent } = require('./intentService');
 const { calculate } = require('./calculatorService');
 const { getTime, getDate } = require('./informationService');
@@ -16,6 +17,7 @@ test('detects Phase 6 information intents', () => {
   assert.equal(detectIntent('Translate hello into French.'), 'TRANSLATE');
   assert.equal(detectIntent('Convert 10 kilometers to miles.'), 'UNIT_CONVERSION');
   assert.equal(detectIntent('Convert 100 USD to INR.'), 'CURRENCY_CONVERSION');
+  assert.equal(detectIntent('100 EUR to JPY.'), 'CURRENCY_CONVERSION');
   assert.equal(detectIntent('What is Python?'), 'CHAT');
 });
 
@@ -54,10 +56,22 @@ test('prefers explicit city extraction over fallback location', () => {
   assert.equal(resolved.explicit, 'London');
 });
 
-test('converts supported units and currencies', () => {
+test('converts supported units and fetches live currency rates', async () => {
   assert.equal(convertUnit(10, 'kilometer', 'mile').toFixed(2), '6.21');
   assert.equal(convertUnit(100, 'fahrenheit', 'celsius').toFixed(2), '37.78');
   assert.equal(convertUnit(2, 'kilogram', 'gram'), 2000);
-  const result = convertCurrency(100, 'USD', 'INR');
-  assert.ok(result && result.amount === 100 && result.to === 'INR');
+  const originalGet = axios.get;
+  axios.get = async () => ({ data: { result: 'success', rates: { INR: 83.2 } } });
+  try {
+    const result = await convertCurrency(100, 'USD', 'INR');
+    assert.deepEqual(result, {
+      amount: 100,
+      from: 'USD',
+      to: 'INR',
+      rate: 83.2,
+      convertedAmount: 8320,
+    });
+  } finally {
+    axios.get = originalGet;
+  }
 });

@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const { generateAIResponse, MAX_CONTEXT_MESSAGES } = require('../services/aiService');
-const { detectIntent, FUTURE_INTENTS, parseNoteInput, parseTaskInput, parseReminderInput } = require('../services/intentService');
+const { detectIntent, parseNoteInput, parseTaskInput, parseReminderInput } = require('../services/intentService');
 const { resolveReminderDate } = require('../utils/timezone');
 const Conversation = require('../models/Conversation');
 const Memory = require('../models/Memory');
@@ -11,8 +11,30 @@ const User = require('../models/User');
 const { routeAction } = require('../services/actionRouter');
 
 const MAX_MESSAGE_LENGTH = 8000;
+const ACTION_INTENTS = new Set([
+  'WEATHER',
+  'WEB_SEARCH',
+  'SEARCH',
+  'CALCULATE',
+  'TIME',
+  'TIME_DATE',
+  'DATE',
+  'TRANSLATE',
+  'UNIT_CONVERSION',
+  'CURRENCY_CONVERSION',
+  'LOCATION',
+]);
+const MEMORY_INTENTS = new Set(['CREATE_MEMORY', 'GET_MEMORY', 'DELETE_MEMORY']);
 
 const normalizeText = (value) => String(value || '').trim().slice(0, MAX_MESSAGE_LENGTH);
+
+const getIntentHandler = (intent) => {
+  if (ACTION_INTENTS.has(intent)) return 'action';
+  if (intent === 'CHAT') return 'chat';
+  if (MEMORY_INTENTS.has(intent)) return 'memory';
+  if (/^(CREATE_|GET_|SEARCH_|UPDATE_|DELETE_|PIN_|COMPLETE_)/.test(intent)) return 'productivity';
+  return 'unknown';
+};
 
 const ensureConversation = async ({ conversationId, userId, message }) => {
   if (conversationId) {
@@ -305,10 +327,21 @@ const performMemoryIntent = async ({ intent, message, userId }) => {
     return memoryResponse('GET_MEMORY', messageText, { memories });
   }
 
-  const phrase = message.replace(/^(forget|remove from memory|delete memory)\s+(that\s+|this\s+)?/i, '').trim();
-  const words = phrase.toLowerCase().split(/\s+/).filter((word) => word.length > 2);
+  if (intent !== 'DELETE_MEMORY') {
+    return memoryResponse('UNKNOWN_COMMAND', 'I am not sure how to help with that command.', null);
+  }
+
+  const phrase = message.replace(/^(forget|remove from memory|delete memory)\s*(that\s+|this\s+)?/i, '').trim();
+  const ignoredTerms = new Set(['about', 'from', 'memory', 'please', 'saved', 'that', 'this', 'the', 'your']);
+  const words = phrase.toLowerCase().match(/[a-z0-9]+/g)?.filter((word) => word.length > 2 && !ignoredTerms.has(word)) || [];
+  if (!words.length) {
+    return memoryResponse('DELETE_MEMORY', 'Please specify which saved memory you want me to forget.', null);
+  }
   const memories = await Memory.find({ userId }).sort({ updatedAt: -1 }).limit(50);
-  const match = memories.find((memory) => words.some((word) => `${memory.key} ${memory.value}`.toLowerCase().includes(word)));
+  const match = memories.find((memory) => {
+    const memoryTerms = `${memory.key} ${memory.value}`.toLowerCase().match(/[a-z0-9]+/g) || [];
+    return words.some((word) => memoryTerms.includes(word));
+  });
   if (!match) return memoryResponse('DELETE_MEMORY', 'I could not find a matching saved memory.', null);
 
   await Memory.deleteOne({ _id: match._id, userId });
@@ -318,7 +351,7 @@ const performMemoryIntent = async ({ intent, message, userId }) => {
 const errorResponse = (error) => {
   if (error.code === 'AI_NOT_CONFIGURED') return { status: 503, message: 'AI service is not configured.' };
   if (error.code === 'AI_RATE_LIMITED') return { status: 429, code: 'AI_RATE_LIMITED', message: 'AURA is temporarily busy. Please try again in a few seconds.' };
-  if (error.code === 'AI_QUOTA_EXCEEDED') return { status: 429, code: 'AI_QUOTA_EXCEEDED', message: 'AURA\'s AI service quota is unavailable. Please check the API project billing/usage settings.' };
+  if (error.code === 'AI_QUOTA_EXCEEDED') return { status: 402, code: 'AI_QUOTA_EXCEEDED', message: 'AURA\'s AI service credits are unavailable. Please check the OpenRouter account billing/usage settings.' };
   if (error.code === 'AI_AUTH_ERROR') return { status: 502, code: 'AI_AUTH_ERROR', message: 'AURA\'s AI configuration needs attention.' };
   if (error.code === 'AI_MODEL_ERROR') return { status: 502, code: 'AI_MODEL_ERROR', message: 'AURA\'s configured AI model is unavailable.' };
   if (error.code === 'AI_INVALID_RESPONSE') return { status: 502, message: 'The AI provider returned an invalid response.' };
@@ -340,23 +373,26 @@ exports.chat = async (req, res) => {
     conversation.messages.push({ role: 'user', content: message, type: 'message', inputType });
 
     let result;
-    if (FUTURE_INTENTS.includes(intent) && ['WEATHER', 'SEARCH', 'CALCULATE', 'TIME', 'DATE', 'TRANSLATE'].includes(intent)) {
+    const handler = getIntentHandler(intent);
+    if (handler === 'action') {
       result = await routeAction({
         intent,
         message,
         userLocation: req.body.location || req.body.userLocation || null,
       });
-    } else if (intent === 'CHAT') {
+    } else if (handler === 'chat') {
       const [user, memories] = await Promise.all([
         User.findById(userId).select('name preferences assistantSettings').lean(),
         Memory.find({ userId }).sort({ updatedAt: -1 }).limit(50).lean(),
       ]);
       const aiResult = await generateAIResponse({ message, history, user, memories });
       result = memoryResponse('CHAT', aiResult.message, null);
-    } else if (/^(CREATE_|GET_|SEARCH_|UPDATE_|DELETE_|PIN_|COMPLETE_)/.test(intent)) {
+    } else if (handler === 'productivity') {
       result = await performProductivityIntent({ intent, message, userId });
-    } else {
+    } else if (handler === 'memory') {
       result = await performMemoryIntent({ intent, message, userId });
+    } else {
+      result = memoryResponse('UNKNOWN_COMMAND', 'I am not sure how to help with that command.', null);
     }
 
     conversation.messages.push({ role: 'assistant', content: result.message, type: 'message', inputType });
@@ -376,3 +412,5 @@ exports.chat = async (req, res) => {
     return res.status(safeError.status).json({ success: false, code: safeError.code, message: safeError.message });
   }
 };
+
+exports.getIntentHandler = getIntentHandler;

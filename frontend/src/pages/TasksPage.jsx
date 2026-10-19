@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Plus, Search, CheckCircle2, Trash2, PencilLine } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
@@ -18,7 +18,7 @@ const TasksPage = () => {
   const [editingId, setEditingId] = useState(null);
   const [toastMessage, setToastMessage] = useState('');
 
-  const loadTasks = async () => {
+  const loadTasks = useCallback(async () => {
     try {
       setLoading(true);
       const { data } = await api.get('/tasks', { params: { status: statusFilter === 'all' ? undefined : statusFilter } });
@@ -28,11 +28,11 @@ const TasksPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [statusFilter]);
 
   useEffect(() => {
     loadTasks();
-  }, [statusFilter]);
+  }, [loadTasks]);
 
   const filteredTasks = useMemo(() => {
     const value = search.trim().toLowerCase();

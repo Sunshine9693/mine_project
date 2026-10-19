@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import api from '../services/api';
 
 const AuthContext = createContext(null);
@@ -8,33 +8,38 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const refreshRequestRef = useRef(null);
 
-  // Load user session on mount
-  useEffect(() => {
-    refreshUser();
+  const refreshUser = useCallback(() => {
+    if (refreshRequestRef.current) return refreshRequestRef.current;
+    setLoading(true);
+    const request = (async () => {
+      try {
+        const response = await api.get('/auth/me');
+        const nextUser = response.data?.user || response.data?.data;
+        if (response.data?.success && nextUser) {
+          setUser(nextUser);
+          setIsAuthenticated(true);
+          return nextUser;
+        }
+        setUser(null);
+        setIsAuthenticated(false);
+      } catch {
+        setUser(null);
+        setIsAuthenticated(false);
+      } finally {
+        setLoading(false);
+        refreshRequestRef.current = null;
+      }
+      return null;
+    })();
+    refreshRequestRef.current = request;
+    return request;
   }, []);
 
-  const refreshUser = async () => {
-    setLoading(true);
-    try {
-      const response = await api.get('/auth/me');
-      if (response.data && response.data.success) {
-        const nextUser = response.data.user || response.data.data;
-        setUser(nextUser);
-        setIsAuthenticated(true);
-        return nextUser;
-      }
-      setUser(null);
-      setIsAuthenticated(false);
-    } catch (err) {
-      setUser(null);
-      setIsAuthenticated(false);
-      console.log('[AURA Auth] No active session found');
-    } finally {
-      setLoading(false);
-    }
-    return null;
-  };
+  useEffect(() => {
+    refreshUser();
+  }, [refreshUser]);
 
   // Login handler
   const login = async (email, password) => {

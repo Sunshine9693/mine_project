@@ -40,7 +40,7 @@ AURA combines:
 - MongoDB with Mongoose
 - JWT authentication
 - Helmet, CORS, rate limiting
-- Gemini AI integration
+- OpenRouter AI integration
 
 ## Architecture
 
@@ -77,11 +77,10 @@ npm install
 
 ### 2) Configure environment variables
 
-Copy the example files and fill in the required values:
+Copy the backend example and create the frontend environment file with the local API URL shown below:
 
 ```bash
 cp backend/.env.example backend/.env
-cp frontend/.env.example frontend/.env
 ```
 
 Use placeholders only; never commit actual secrets.
@@ -115,12 +114,13 @@ PORT=5002
 MONGO_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/aura
 JWT_SECRET=replace-with-a-long-random-secret
 CLIENT_URL=http://localhost:5173
-GEMINI_API_KEY=your-gemini-key
-GEMINI_MODEL=gemini-3.5-flash-lite
+OPENROUTER_API_KEY=your-openrouter-key
+OPENROUTER_MODEL=openai/gpt-4o-mini
 WEATHER_API_KEY=
 DEFAULT_WEATHER_CITY=Hyderabad
-SEARCH_API_KEY=
-SEARCH_API_URL=
+SEARCH_API_KEY=your-serpapi-key
+SEARCH_API_URL=https://serpapi.com/search
+CURRENCY_API_URL=
 TRANSLATION_API_URL=
 TRANSLATION_API_KEY=
 APP_TIMEZONE=Asia/Kolkata
@@ -131,7 +131,10 @@ Notes:
 - `MONGO_URI` must point to a MongoDB Atlas cluster or a reachable local MongoDB instance.
 - `JWT_SECRET` must be set in production and should never be exposed to the frontend.
 - `CLIENT_URL` is used for CORS allowlist configuration and should be set to the deployed frontend domain in production.
-- Gemini and utility provider credentials remain backend-only.
+- OpenRouter and utility provider credentials remain backend-only.
+- `SEARCH_API_KEY` is a SerpAPI key; `SEARCH_API_URL` optionally overrides its documented Google Search endpoint.
+- `CURRENCY_API_URL` is optional; if overriding the default exchange-rate API, include `{from}` where the source currency code belongs.
+- The Translator uses DeepL API. Create a DeepL API account and key, review the plan and pricing, and set `TRANSLATION_API_KEY` in `backend/.env`. Set `TRANSLATION_API_URL` to `https://api-free.deepl.com/v2/translate` for a DeepL API Free plan or `https://api.deepl.com/v2/translate` for Pro. The key is only used by the backend.
 
 ### Frontend (`frontend/.env`)
 
@@ -155,7 +158,7 @@ VITE_API_BASE_URL=https://your-backend-url.onrender.com/api
 
 ### Backend production setup
 
-- The backend uses `process.env.PORT` and defaults to `5001` only for local development.
+- The backend uses `process.env.PORT` and defaults to `5002` for local development.
 - CORS allows configured frontend origins while keeping development localhost access available.
 - Cookies are still used for auth, so credentials remain enabled for same-site or cross-site setups when the deployment type supports them.
 - The middleware now fails safely when `JWT_SECRET` is missing instead of silently using a weak fallback value.
@@ -211,8 +214,8 @@ Set the following in the backend host:
 - `MONGO_URI`
 - `JWT_SECRET`
 - `CLIENT_URL`
-- `GEMINI_API_KEY`
-- `GEMINI_MODEL`
+- `OPENROUTER_API_KEY`
+- `OPENROUTER_MODEL`
 - optional utility keys as needed
 
 Set the following in the frontend host:
@@ -279,4 +282,3 @@ This project was also checked for frontend build health and backend auth service
 ## Final status
 
 This repository is prepared for production deployment work, but it has not been published yet. The codebase remains preserved and operational, while the real deployment and live provider configuration steps are still required outside this environment.
-

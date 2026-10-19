@@ -61,12 +61,12 @@ const allowedClientOrigins = new Set(configuredOrigins);
 // ENVIRONMENT CHECKS
 // ============================================================
 
-if (!process.env.GEMINI_API_KEY?.trim()) {
+const missingAIConfiguration = ['OPENROUTER_API_KEY', 'OPENROUTER_MODEL']
+  .filter((name) => !process.env[name]?.trim());
+if (missingAIConfiguration.length) {
   console.warn(
-    '[AURA AI] GEMINI_API_KEY is missing. Add it to backend/.env and restart the backend.'
+    `[AURA AI] Missing required configuration: ${missingAIConfiguration.join(', ')}. Add it to backend/.env and restart the backend.`
   );
-} else {
-  console.log('[AURA AI] Gemini API key loaded successfully.');
 }
 
 

@@ -16,9 +16,9 @@ exports.calculate = (req, res, next) => {
   }
 };
 
-exports.currency = (req, res, next) => {
+exports.currency = async (req, res, next) => {
   try {
-    const outcome = convertCurrency(req.body.amount, req.body.from, req.body.to);
+    const outcome = await convertCurrency(req.body.amount, req.body.from, req.body.to);
     return res.json({ success: true, ...outcome });
   } catch (error) {
     return next(error);
@@ -35,7 +35,34 @@ exports.convert = (req, res, next) => {
 };
 
 exports.weather = async (req, res, next) => { try { return res.json({ success: true, weather: await getWeather(req.query.city) }); } catch (error) { return next(error); } };
-exports.search = async (req, res, next) => { try { return res.json({ success: true, results: await getSearchResults(req.query.q) }); } catch (error) { return next(error); } };
+exports.search = async (req, res, next) => {
+  const query = req.query.q;
+  if (process.env.AURA_SEARCH_DIAGNOSTICS === 'true') {
+    console.info('[AURA Search Diagnostic]', JSON.stringify({ event: 'backend_query_received', query }));
+  }
+  try {
+    return res.json({ success: true, results: await getSearchResults(query) });
+  } catch (error) {
+    return next(error);
+  }
+};
 exports.time = async (req, res, next) => { try { return res.json({ success: true, time: getTime(req.query.timezone) }); } catch (error) { return next(error); } };
 exports.date = async (req, res, next) => { try { return res.json({ success: true, date: getDate(req.query.phrase) }); } catch (error) { return next(error); } };
-exports.translation = async (req, res, next) => { try { const result = await translate(req.body.text, req.body.targetLanguage); return res.json({ success: true, originalText: result.originalText, translatedText: result.translatedText, targetLanguage: result.targetLanguage }); } catch (error) { return next(error); } };
+exports.translation = async (req, res, next) => {
+  try {
+    const result = await translate(
+      req.body?.text,
+      req.body?.targetLanguage,
+      req.body?.sourceLanguage,
+    );
+    return res.json({
+      success: true,
+      originalText: result.originalText,
+      translatedText: result.translatedText,
+      sourceLanguage: result.sourceLanguage,
+      targetLanguage: result.targetLanguage,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};

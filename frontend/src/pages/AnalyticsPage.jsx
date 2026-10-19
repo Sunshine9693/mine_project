@@ -9,7 +9,6 @@ import {
   FileText,
   Lock,
   MemoryStick,
-  MessageSquareText,
   Sparkles,
   Tag,
 } from 'lucide-react';
@@ -25,7 +24,7 @@ const formatTimestamp = (value) => {
       hour: 'numeric',
       minute: '2-digit',
     }).format(new Date(value));
-  } catch (error) {
+  } catch {
     return 'Recently';
   }
 };

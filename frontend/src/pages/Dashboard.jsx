@@ -5,13 +5,11 @@ import {
   CheckSquare,
   Bell,
   Sparkles,
-  Clock,
   ChevronRight,
   Calendar,
   Search,
   MessageSquare,
   Music,
-  Plus,
   Calculator,
   CircleDollarSign,
   CloudSun,
@@ -40,7 +38,7 @@ const getTimeOfDayForTimezone = (timezone) => {
     if (hour >= 5 && hour < 12) return 'Morning';
     if (hour >= 12 && hour < 18) return 'Afternoon';
     return 'Evening';
-  } catch (error) {
+  } catch {
     return 'Morning';
   }
 };
@@ -61,7 +59,7 @@ const isBirthdayToday = (birthday, timezone) => {
     const monthPart = todayParts.find((part) => part.type === 'month')?.value;
     const dayPart = todayParts.find((part) => part.type === 'day')?.value;
     return Number(monthPart) === month && Number(dayPart) === day;
-  } catch (error) {
+  } catch {
     return false;
   }
 };
@@ -273,7 +271,7 @@ const Dashboard = () => {
           {/* History List */}
           <div className="space-y-3">
             {filteredHistory.length > 0 ? (
-              filteredHistory.map((item, idx) => (
+              filteredHistory.map((item) => (
                 <div 
                   key={item.id}
                   onClick={() => showToast(`Opening logs for: "${item.title}"`, 'info')}

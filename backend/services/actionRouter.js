@@ -36,10 +36,10 @@ const parseUnitConversion = (message) => {
     /how\s+many\s+([a-zA-Z]+)\s+are\s+in\s+(\d+(?:\.\d+)?)\s*([a-zA-Z]+)/i,
   ];
 
-  for (const pattern of patterns) {
+  for (const [index, pattern] of patterns.entries()) {
     const match = String(message).match(pattern);
     if (match) {
-      if (pattern.source.includes('how many')) {
+      if (index === 2) {
         return { value: Number(match[2]), from: match[3], to: match[1] };
       }
       return { value: Number(match[1]), from: match[2], to: match[3] };
@@ -51,20 +51,14 @@ const parseUnitConversion = (message) => {
 
 const parseCurrencyConversion = (message) => {
   const patterns = [
-    /(\d+(?:\.\d+)?)\s*(?:usd|us\s*dollar|dollars?|inr|rupees?|eur|euros?|gbp|pounds?|jpy|yen|cad|aud|sgd|aed|pkr)\s+(?:to|in)\s+(?:usd|us\s*dollar|dollars?|inr|rupees?|eur|euros?|gbp|pounds?|jpy|yen|cad|aud|sgd|aed|pkr)/i,
+    /(\d+(?:\.\d+)?)\s*(usd|us\s*dollars?|dollars?|inr|rupees?|eur|euros?|gbp|pounds?|jpy|yen|cad|aud|sgd|aed|pkr)\s+(?:to|in)\s+(usd|us\s*dollars?|dollars?|inr|rupees?|eur|euros?|gbp|pounds?|jpy|yen|cad|aud|sgd|aed|pkr)/i,
     /(?:convert|exchange)\s+(\d+(?:\.\d+)?)\s*(?:\$)?\s*([a-zA-Z]+)\s+(?:to|in)\s+([a-zA-Z]+)/i,
   ];
 
   for (const pattern of patterns) {
     const match = String(message).match(pattern);
     if (match) {
-      if (pattern.source.includes('exchange')) {
-        return { value: Number(match[1]), from: match[2], to: match[3] };
-      }
-      const amount = Number(match[1]);
-      const from = match[2] || 'USD';
-      const to = match[3] || 'INR';
-      return { value: amount, from, to };
+      return { value: Number(match[1]), from: match[2], to: match[3] };
     }
   }
 
@@ -86,16 +80,12 @@ const routeAction = async ({ intent, message, userLocation = null }) => {
       fallbackCity: process.env.DEFAULT_WEATHER_CITY,
     });
 
-    console.log('[AURA ActionRouter] User query:', message);
-    console.log('[AURA ActionRouter] Extracted location:', resolvedLocation.location || 'none');
-    console.log('[AURA ActionRouter] User location provided:', userLocation ? { latitude: userLocation.latitude, longitude: userLocation.longitude } : 'none');
-
     const weather = await getWeather(resolvedLocation.location || null, userLocation || null);
     return response('WEATHER', `${weather.city}: ${weather.temperature}°C, ${weather.condition}. Feels like ${weather.feelsLike}°C.`, weather);
   }
   if (intent === 'WEB_SEARCH' || intent === 'SEARCH') {
     const query = String(message)
-      .replace(/^(?:search|find|look up|search the web)\s+(?:for\s+)?/i, '')
+      .replace(/^(?:search the web|search|find|look up)\s+(?:for\s+)?/i, '')
       .replace(/^(?:what\s+is|what's)\s+/i, '')
       .trim();
 
@@ -109,7 +99,7 @@ const routeAction = async ({ intent, message, userLocation = null }) => {
   }
   if (intent === 'TIME' || intent === 'TIME_DATE') {
     const lower = String(message).toLowerCase();
-    const asksForDate = /date|day is|today'?s date|what day/i.test(lower);
+    const asksForDate = /date|day is|today'?s date|what day\b/i.test(lower);
     if (asksForDate) {
       const date = getDate(message);
       return response('DATE', `It is ${date.date}.`, date);
