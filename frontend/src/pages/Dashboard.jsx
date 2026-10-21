@@ -23,24 +23,25 @@ import Toast from '../components/Toast';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
-const getTimeOfDayForTimezone = (timezone) => {
-  if (!timezone) return 'Morning';
-
+const getTimeOfDayForTimezone = (timezone, now = new Date()) => {
+  const getHour = (timeZone) => Number(
+    new Intl.DateTimeFormat('en-US', {
+      hour: 'numeric',
+      hourCycle: 'h23',
+      ...(timeZone ? { timeZone } : {}),
+    }).format(now)
+  );
+  let hour;
   try {
-    const hour = Number(
-      new Intl.DateTimeFormat('en-US', {
-        hour: 'numeric',
-        hour12: false,
-        timeZone: timezone,
-      }).format(new Date())
-    );
-
-    if (hour >= 5 && hour < 12) return 'Morning';
-    if (hour >= 12 && hour < 18) return 'Afternoon';
-    return 'Evening';
+    hour = getHour(timezone);
   } catch {
-    return 'Morning';
+    hour = getHour();
   }
+
+  if (hour >= 5 && hour < 12) return 'Morning';
+  if (hour >= 12 && hour < 17) return 'Afternoon';
+  if (hour >= 17 && hour < 21) return 'Evening';
+  return 'Night';
 };
 
 const isBirthdayToday = (birthday, timezone) => {
@@ -74,7 +75,9 @@ const Dashboard = () => {
   const [conversationId, setConversationId] = useState(null);
   const [summary, setSummary] = useState({ notes: { total: 0, pinned: 0, recent: [] }, tasks: { total: 0, completed: 0, pending: 0, highPriority: 0 }, reminders: { today: 0, upcoming: 0, completed: 0 } });
   const sendingRef = React.useRef(false);
-  const currentTimeOfDay = getTimeOfDayForTimezone(user?.timezone || 'Asia/Kolkata');
+  const [currentTimeOfDay, setCurrentTimeOfDay] = useState(() =>
+    getTimeOfDayForTimezone(user?.timezone)
+  );
   const birthdayToday = isBirthdayToday(user?.birthday, user?.timezone || 'Asia/Kolkata');
 
   const showToast = (message, type = 'info') => {
@@ -125,6 +128,19 @@ const Dashboard = () => {
 
     loadSummary();
   }, []);
+
+  useEffect(() => {
+    const updateGreeting = () => {
+      const nextTimeOfDay = getTimeOfDayForTimezone(user?.timezone);
+      setCurrentTimeOfDay((current) =>
+        current === nextTimeOfDay ? current : nextTimeOfDay
+      );
+    };
+
+    updateGreeting();
+    const intervalId = setInterval(updateGreeting, 60_000);
+    return () => clearInterval(intervalId);
+  }, [user?.timezone]);
 
   const handleActionClick = (action) => {
     if (action.path) {
